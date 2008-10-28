@@ -34,7 +34,7 @@ class GUIOutput {
 	frame.setVisible(true);
 	System.out.println("adding renderer");
 	frame.getContentPane().add(renderer);
-	frame.pack();
+	//frame.pack();
     }
 }
 
@@ -71,15 +71,20 @@ class Renderer extends JPanel
 	this.defaultColor = c;
     }
     
-    public void paintComponent(Graphics g){
+    public void paintComponent(Graphics g)  {
 	super.paintComponent(g);
-	System.out.println("painting component");
 	for(int i = 0; i < NumberOfObjects; i++){	    
 	    if(linearRings[i] == null){
 		continue;
 	    }
 	    RenderObject(g, i);
 	}
+	try {
+	    Thread.currentThread().sleep(1000);
+	}catch(java.lang.InterruptedException e){
+	    
+	}
+	repaint();
 	
     }
     public void RenderObject(Graphics g, int index){
@@ -143,7 +148,7 @@ class Runner
  	    coords[2] = lr.getCoordinateN(i + 2);
  	    coords[3] = lr.getCoordinateN(i);
  	    boolean isCCW = CGAlgorithms.isCCW(coords);
- 	    if(isCCW == lrIsCCW){
+	    if(isCCW == lrIsCCW){
  		System.out.println("removed index: " + (i + 1));
  		tri = geometryFactory.createLinearRing(coords);
  		Coordinate[] newLrCoords = new Coordinate[lr.getCoordinates().length - 1];
@@ -170,11 +175,11 @@ class Runner
      public static void renderGeometry() {
  	//Coordinate ptc = new Coordinate(14.0d, 14.0d);	
  	Renderer renderer = gui.getRenderer();
- 	//renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 0);
- 	//renderer.setLinearRing(makeSquare(100), 1);
+ 	/*renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 1);
+	  renderer.setLinearRing(makeSquare(100), 2);*/
 	int offset = 2;
 	LinearRing shape = makeS2(200);//makeSquare(200);
-	renderer.setLinearRing(shape, 20);
+	renderer.setLinearRing(shape, 0);
 	Vector<LinearRing> shapes = decomposeTriangles(shape, 1);
 	System.out.println("number of shapes:" + shapes.size());
 	for(int i = 0; i < shapes.size() && i + offset < renderer.NumberOfObjects; i++){
@@ -183,10 +188,8 @@ class Runner
 	    }
 	    System.out.println("i:" + i);
 	    
-	    //renderer.setLinearRing(shapes.get(i), i + offset);
+	    renderer.setLinearRing(shapes.get(i), i + offset);
 	}
-	//repainting
-	//renderer.repaint(0, 0, 0, 640, 480);
     }
 
     public static LinearRing makeS1(int s){
@@ -206,7 +209,7 @@ class Runner
 	c[1] = new Coordinate(s/2, s/2);
 	c[2] = new Coordinate(0, s);
 	c[3] = new Coordinate(s, s);
-	c[4] = new Coordinate(0, s);
+	c[4] = new Coordinate(s, 0);
 	c[5] = new Coordinate(0, 0);
 	return geometryFactory.createLinearRing(c);
     }
