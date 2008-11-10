@@ -73,12 +73,10 @@ class Renderer extends JPanel
     
     public void paintComponent(Graphics g)  {
 	super.paintComponent(g);
-	System.out.println("painting component");
-	for(int i = 0; i < NumberOfObjects; i++){	    
+preg	for(int i = 0; i < NumberOfObjects; i++){	    
 	    if(linearRings[i] == null){
 		continue;
 	    }
-	    System.out.println("rendering object");
 	    RenderObject(g, i);
 	}
 	try {
