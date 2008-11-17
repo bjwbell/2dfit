@@ -64,48 +64,5 @@ class Test
 
 
 
-    public static LinearRing makeS1(int s){
-	Coordinate[] c = new Coordinate[6];
-	c[0] = new Coordinate(0, 0);
-	c[1] = new Coordinate(0, s);
-	c[2] = new Coordinate(s/2, s/2);
-	c[3] = new Coordinate(s, s);
-	c[4] = new Coordinate(s, 0);
-	c[5] = new Coordinate(0, 0);
-	return geometryFactory.createLinearRing(c);
-    }
-    
-    public static LinearRing makeS2(int s){
-	Coordinate[] c = new Coordinate[6];
-	c[0] = new Coordinate(0, 0);
-	c[1] = new Coordinate(s/2, s/2);
-	c[2] = new Coordinate(0, s);
-	c[3] = new Coordinate(s, s);
-	c[4] = new Coordinate(s, 0);
-	c[5] = new Coordinate(0, 0);
-	return geometryFactory.createLinearRing(c);
-    }
-    
-    public static LinearRing makeTriangle(Coordinate p1, Coordinate p2, Coordinate p3) {
-	Coordinate[] coords = new Coordinate[4];
-	coords[0] = p1;
-	coords[1] = p2;
-	coords[2] = p3;
-	coords[3] = new Coordinate(p1.x, p1.y);
-	LinearRing tri = geometryFactory.createLinearRing(coords);
-	return tri;
-    }
-
-
-    public static LinearRing makeSquare(int segmentLength) {
-	Coordinate[] coords = new Coordinate[5];
-	coords[0] = new Coordinate(0, 0);
-	coords[1] = new Coordinate(segmentLength, 0);
-	coords[2] = new Coordinate(segmentLength, segmentLength);
-	coords[3] = new Coordinate(0, segmentLength);
-	coords[4] = new Coordinate(0, 0);	
-	return geometryFactory.createLinearRing(coords);
-    }
-
 
 }

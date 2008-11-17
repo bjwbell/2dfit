@@ -156,7 +156,7 @@ class Runner
  	Renderer renderer = gui.getRenderer();
  	/*renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 1);
 	  renderer.setLinearRing(makeSquare(100), 2);*/
-	int offset = 2;
+	/*int offset = 2;
 	LinearRing shape = Util.makeS2(200);//makeSquare(200);
 	renderer.setLinearRing(shape, 0);
 	Vector<LinearRing> shapes = Util.decomposeTriangles(shape, 1);
@@ -166,7 +166,32 @@ class Runner
 		continue;
 	    }
 	    renderer.setLinearRing(shapes.get(i), i + offset);
-	}
+	    }*/
+
+	LinearRing s1 = Util.makeS1(100);
+	Coordinate p1 = new Coordinate(0, 0);
+	Coordinate p2 = new Coordinate(-100, 0);
+	Coordinate p3 = new Coordinate(0, 100);
+	
+	LinearRing tri = Util.makeTriangle(p1, p2, p3);
+	LinearRing newS1 = null;
+	Util.PrintShape("s1", s1);
+	Util.PrintShape("tri", tri);
+	
+	Polygon poly1 = new Polygon(s1, null, geometryFactory);
+	Polygon poly2 = new Polygon(tri, null, geometryFactory);
+	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
+	
+	newS1 = Util.FitShape(s1, tri);
+	
+	Util.PrintShape("newS1", newS1);
+	renderer.setLinearRing(s1, 0);
+	renderer.setLinearRingColor(new Color(0, 0, 0), 0);
+	renderer.setLinearRing(tri, 1);
+	renderer.setLinearRingColor(new Color(255, 0, 0), 1);
+	renderer.setLinearRing(newS1, 2);
+	renderer.setLinearRingColor(new Color(0, 255, 0), 2);
+	
     }
 
 

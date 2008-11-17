@@ -1,0 +1,32 @@
+s1:
+    Point:0.0, 0.0
+    Point:0.0, 100.0
+    Point:50.0, 50.0
+    Point:100.0, 100.0
+    Point:100.0, 0.0
+    Point:0.0, 0.0
+tri:
+    Point:0.0, 0.0
+    Point:-100.0, 0.0
+    Point:0.0, 100.0
+    Point:0.0, 0.0
+p1.covers(p2):false
+c1:0.0, 0.0
+c2:0.0, 0.0
+t1
+c11:0.0, 0.0
+c12:0.0, 100.0
+c21:0.0, 0.0
+c22:-100.0, 0.0
+p2:
+    Point:0.0, 0.0
+    Point:-100.0, 0.0
+    Point:0.0, 100.0
+    Point:0.0, 0.0
+cosTheta:0.0
+sineTheta:-1.0
+newS1:
+    Point:50.0, 50.0
+    Point:100.0, 100.0
+    Point:100.0, 0.0
+    Point:50.0, 50.0
