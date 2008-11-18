@@ -43,12 +43,13 @@ class Test
 	*/
 	
 	
-	LinearRing s1 = makeS1(100);
+	LinearRing s1 = Util.makeS1(100);
 	Coordinate p1 = new Coordinate(0, 0);
 	Coordinate p2 = new Coordinate(-100, 0);
 	Coordinate p3 = new Coordinate(0, 100);
 	
-	LinearRing tri = makeTriangle(p1, p2, p3);
+	LinearRing tri = Util.makeTriangle(p1, p2, p3);
+	LinearRing tri2 = Util.makeTriangle(new Coordinate(100, 0), new Coordinate(50, 50), new Coordinate(100, 100));
 	LinearRing newS1 = null;
 	Util.PrintShape("s1", s1);
 	Util.PrintShape("tri", tri);
@@ -57,7 +58,7 @@ class Test
 	Polygon poly2 = new Polygon(tri, null, geometryFactory);
 	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
 	
-	newS1 = Util.FitShape(s1, tri);
+	newS1 = Util.FitShape(s1, tri2);
 	
 	Util.PrintShape("newS1", newS1);
     }

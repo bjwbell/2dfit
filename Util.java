@@ -105,7 +105,11 @@ class Util {
 
 
     public static LinearRing FitShape(LinearRing p1, LinearRing p2){
-	return FitShape(p1, p2, 0, 0).resultShape;
+	FitShapeReturn ret = FitShape(p1, p2, 0, 0);
+	if(ret == null){
+	    return null;
+	};
+	return ret.resultShape;
     }
 
 
@@ -188,13 +192,20 @@ class Util {
 	for(int i = initialP1CoordIdx; i < s1.size() - 1; i++) {
 	    CoordinateSequence s2 = p2.getCoordinateSequence();
 	    for(int j = initialP2CoordIdx; j < s2.size() - 1; j++) {
+		boolean print = false;
+		if( i == 2 && j == 1){
+		    print = true;
+		}
 		Coordinate c1 = s1.getCoordinate(i);
 		Coordinate c2 = s2.getCoordinate(j);
 		Coordinate c12 = s1.getCoordinate(getNextCoordIdx(p1, i));
 		Coordinate c22 = s2.getCoordinate(getNextCoordIdx(p2, j));
-		
-		/*PrintCoord("c1", c1);
-		  PrintCoord("c2", c2);*/
+		if(print){
+		    PrintCoord("c1", c1);
+		    PrintCoord("c12", c12);
+		    PrintCoord("c2", c2);
+		    PrintCoord("c22", c22);
+		}
 		LinearRing r = null;
 		//System.out.println("t1");
 		r = MatchSegs(c1, c12, c2, c22, p1, p2);
@@ -261,18 +272,20 @@ class Util {
 	*/
 	double translateX = c11.x - c21.x;
 	double translateY = c11.y - c21.y;
+	//System.out.println("translate:" + translateX + ", " + translateY);
 	CoordinateSequence s1 = p1.getCoordinateSequence();
 	CoordinateSequence s2 = p2.getCoordinateSequence();
 	AffineTransformation translation = new AffineTransformation();
+
 	translation.translate(translateX, translateY);
 	p2.apply(translation);
 	p2.geometryChanged();
 	//PrintShape("p2", p2);
-	
+
 
 	AffineTransformation rotation = new AffineTransformation();
 	double cosTheta = getCosTheta(c11, c12, c21, c22);
-	System.out.println("cosTheta:" + cosTheta);
+	//System.out.println("cosTheta:" + cosTheta);
 	if((new Float(cosTheta)).toString().equals("NaN")){
 	    PrintCoord("c11", c11);
 	    PrintCoord("c12", c12);
@@ -289,7 +302,7 @@ class Util {
 	    sineTheta = -1 * sineTheta;
 	}
 	rotation.rotate(sineTheta, cosTheta, c11.x, c11.y);
-	
+	//PrintShape("p2", p2);		
 	p2.apply(rotation);
 	p2.geometryChanged();
 	
@@ -302,19 +315,24 @@ class Util {
 	    if(newP1 != null){
 		return newP1;
 	    }else{
-		return null;
+		//System.out.println("Returning null");
+		//return null;
 	    }
 	}
-	
-	
+	//PrintShape("p2", p2);	
+	//System.out.println("sineTheta: " + -1 * sineTheta);
+	//System.out.println("cosTheta: " + cosTheta);
+	//PrintCoord("c11", c11);
+	rotation = new AffineTransformation();
 	rotation.rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
 	p2.apply(rotation);
 	p2.geometryChanged();
 	
-	
+	//PrintShape("p2", p2);	
 	translation.translate(-1 * translateX, -1 * translateY);
 	p2.apply(translation);
 	p2.geometryChanged();
+	//System.exit(0);
 	return null;
     }
     

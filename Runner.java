@@ -115,8 +115,9 @@ class Renderer extends JPanel
 	for(int i = 0; i < numPoints - 1; i++){
 	    Point p1 = linearRings[index].getPointN(i);
 	    Point p2 = linearRings[index].getPointN(i + 1);
+	    int titleBarOffset = -35;
 	    //translate and then flip the y-coordinate for the output.
-	    g.drawLine((int)p1.getX(), -1 * ((int)p1.getY() - height), (int)p2.getX(), -1 * ( (int)p2.getY() - height));
+	    g.drawLine((int)p1.getX(), -1 * ((int)p1.getY() - height) + titleBarOffset, (int)p2.getX(), -1 * ( (int)p2.getY() - height) + titleBarOffset);
 	}
 	
     }
@@ -151,6 +152,10 @@ class Runner
  	renderGeometry();
      }
 
+    public static List<LinearRing> makeTangramPieces(){
+	
+    }
+
      public static void renderGeometry() {
  	//Coordinate ptc = new Coordinate(14.0d, 14.0d);	
  	Renderer renderer = gui.getRenderer();
@@ -174,6 +179,7 @@ class Runner
 	Coordinate p3 = new Coordinate(0, 100);
 	
 	LinearRing tri = Util.makeTriangle(p1, p2, p3);
+	LinearRing tri2 = Util.makeTriangle(new Coordinate(100, 0), new Coordinate(50, 50), new Coordinate(100, 100));
 	LinearRing newS1 = null;
 	Util.PrintShape("s1", s1);
 	Util.PrintShape("tri", tri);
@@ -182,16 +188,22 @@ class Runner
 	Polygon poly2 = new Polygon(tri, null, geometryFactory);
 	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
 	
-	newS1 = Util.FitShape(s1, tri);
-	
-	Util.PrintShape("newS1", newS1);
+	//newS1 = Util.FitShape(s1, tri);
+	ArrayList<LinearRing> shapes = new ArrayList<LinearRing>();
+	shapes.add(tri);
+	shapes.add(tri2);
+	//Util.Fit(s1, shapes);
+	//Util.FitShape(s1, tri2);
+	System.out.println("Fit:" + Util.Fit(s1, shapes));
+	//Util.PrintShape("newS1", newS1);
 	renderer.setLinearRing(s1, 0);
 	renderer.setLinearRingColor(new Color(0, 0, 0), 0);
 	renderer.setLinearRing(tri, 1);
 	renderer.setLinearRingColor(new Color(255, 0, 0), 1);
-	renderer.setLinearRing(newS1, 2);
+	//renderer.setLinearRing(newS1, 2);
+	//renderer.setLinearRingColor(new Color(0, 255, 0), 2);
+	renderer.setLinearRing(tri2, 2);
 	renderer.setLinearRingColor(new Color(0, 255, 0), 2);
-	
     }
 
 
