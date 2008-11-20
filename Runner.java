@@ -152,8 +152,8 @@ class Runner
  	renderGeometry();
      }
 
-    public static List<LinearRing> makeTangramPieces(){
-	
+    public static ArrayList<LinearRing> makeTangramPieces(){
+	return null;
     }
 
      public static void renderGeometry() {
