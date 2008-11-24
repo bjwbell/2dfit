@@ -92,7 +92,7 @@ class Util {
     }
 
 
-    public static LinearRing makeSquare(int segmentLength) {
+    public static LinearRing makeSquare(double segmentLength) {
 	Coordinate[] coords = new Coordinate[5];
 	coords[0] = new Coordinate(0, 0);
 	coords[1] = new Coordinate(segmentLength, 0);

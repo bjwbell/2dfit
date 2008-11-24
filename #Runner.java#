@@ -212,6 +212,8 @@ class Runner
      public static void renderGeometry() {
  	//Coordinate ptc = new Coordinate(14.0d, 14.0d);	
  	Renderer renderer = gui.getRenderer();
+	LinearRing puzzle = Util.makeSquare(1.0);
+	Util.FitShapes
  	/*renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 1);
 	  renderer.setLinearRing(makeSquare(100), 2);*/
 	/*int offset = 2;
@@ -226,7 +228,7 @@ class Runner
 	    renderer.setLinearRing(shapes.get(i), i + offset);
 	    }*/
 
-	/*LinearRing s1 = Util.makeS1(100);
+	LinearRing s1 = Util.makeS1(100);
 	Coordinate p1 = new Coordinate(0, 0);
 	Coordinate p2 = new Coordinate(-100, 0);
 	Coordinate p3 = new Coordinate(0, 100);
@@ -256,7 +258,7 @@ class Runner
 	//renderer.setLinearRing(newS1, 2);
 	//renderer.setLinearRingColor(new Color(0, 255, 0), 2);
 	renderer.setLinearRing(tri2, 2);
-	renderer.setLinearRingColor(new Color(0, 255, 0), 2);*/
+	renderer.setLinearRingColor(new Color(0, 255, 0), 2);
     }
 
 
