@@ -183,6 +183,8 @@ class Util {
 	int p2CoordIdx;
     }
 
+    public static Boolean debug = false;
+    public static Boolean matchSegsDebug = false;
 
     // fits p2 to p1. That is p2 is a subset of p1.
     public static FitShapeReturn FitShape(LinearRing p1, LinearRing p2, int initialP1CoordIdx, int initialP2CoordIdx) {
@@ -192,20 +194,23 @@ class Util {
 	for(int i = initialP1CoordIdx; i < s1.size() - 1; i++) {
 	    CoordinateSequence s2 = p2.getCoordinateSequence();
 	    for(int j = initialP2CoordIdx; j < s2.size() - 1; j++) {
-		boolean print = false;
-		if( i == 2 && j == 1){
-		    print = true;
-		}
 		Coordinate c1 = s1.getCoordinate(i);
 		Coordinate c2 = s2.getCoordinate(j);
 		Coordinate c12 = s1.getCoordinate(getNextCoordIdx(p1, i));
 		Coordinate c22 = s2.getCoordinate(getNextCoordIdx(p2, j));
-		if(print){
-		    PrintCoord("c1", c1);
-		    PrintCoord("c12", c12);
-		    PrintCoord("c2", c2);
-		    PrintCoord("c22", c22);
+		if(debug){
+		    //matchSegsDebug = true;
+		    System.out.println("p1CoordIdx:" + i);
+		    System.out.println("p2CoordIdx:" + j);
+		    PrintCoord("p1Coord", c1);
+		    PrintCoord("p12Coord", c12);
+		    PrintCoord("p2Coord", c2);
+		    PrintCoord("p22Coord", c22);
+
 		}
+		//if(i != 2){
+		//    matchSegsDebug = false;
+		//}
 		LinearRing r = null;
 		//System.out.println("t1");
 		r = MatchSegs(c1, c12, c2, c22, p1, p2);
@@ -234,7 +239,6 @@ class Util {
 		    ret.p1CoordIdx = i;
 		    ret.p2CoordIdx = j;
 		    return ret;
-
 		}
 		
 
@@ -258,6 +262,14 @@ class Util {
 	return null;
     }
 
+    public static AffineTransformation Rotate(double sineTheta, double cosTheta, double x, double y){
+	AffineTransformation rot = new AffineTransformation();
+	rot.translate(-x, -y);
+	rot.rotate(sineTheta, cosTheta, 0, 0);
+	rot.translate(x, y);
+	return rot;
+    }
+
     public static LinearRing MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, LinearRing p1, LinearRing p2){
 	
 	//System.out.println("j:" + j);
@@ -270,17 +282,26 @@ class Util {
 	PrintCoord("c21", c21);
 	PrintCoord("c22", c22);
 	*/
+	if(debug && matchSegsDebug){
+	    PrintShape("p2", p2);
+	}
 	double translateX = c11.x - c21.x;
 	double translateY = c11.y - c21.y;
 	//System.out.println("translate:" + translateX + ", " + translateY);
 	CoordinateSequence s1 = p1.getCoordinateSequence();
 	CoordinateSequence s2 = p2.getCoordinateSequence();
 	AffineTransformation translation = new AffineTransformation();
-
+	if(matchSegsDebug){
+	    System.out.println("transX:" + translateX);
+	    System.out.println("transY:" + translateY);
+	}
 	translation.translate(translateX, translateY);
 	p2.apply(translation);
 	p2.geometryChanged();
-	//PrintShape("p2", p2);
+	if(matchSegsDebug){
+	    PrintCoord("c11", c11);
+	    PrintShape("trans p2", p2);
+	}
 
 
 	AffineTransformation rotation = new AffineTransformation();
@@ -301,18 +322,27 @@ class Util {
 	if(CrossProd(v1, w1) < 0){
 	    sineTheta = -1 * sineTheta;
 	}
-	rotation.rotate(sineTheta, cosTheta, c11.x, c11.y);
+
+	if(matchSegsDebug){
+	    PrintCoord("rc11", c11);
+	}
+
+	rotation = Rotate(sineTheta, cosTheta, c11.x, c11.y);
+	//	rotation.rotate(sineTheta, cosTheta, c11.x, c11.y);
 	//PrintShape("p2", p2);		
 	p2.apply(rotation);
 	p2.geometryChanged();
-	
+	if(matchSegsDebug){
+	    PrintShape("poly2", p2);
+	}
 	Polygon poly1 = new Polygon(p1, null, geometryFactory);
 	Polygon poly2 = new Polygon(p2, null, geometryFactory);
 	
 	if(poly1.covers(poly2)){
 	    Geometry g = poly1.difference(poly2);
-	    LinearRing newP1 = ConvertToLinearRing(g);
+	    LinearRing newP1 = convertToLinearRing(g);
 	    if(newP1 != null){
+		//System.out.println("returning newP1");
 		return newP1;
 	    }else{
 		//System.out.println("Returning null");
@@ -324,14 +354,20 @@ class Util {
 	//System.out.println("cosTheta: " + cosTheta);
 	//PrintCoord("c11", c11);
 	rotation = new AffineTransformation();
-	rotation.rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
+	rotation = Rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
+	//rotation.rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
 	p2.apply(rotation);
 	p2.geometryChanged();
 	
+	translation = new AffineTransformation();
 	//PrintShape("p2", p2);	
 	translation.translate(-1 * translateX, -1 * translateY);
 	p2.apply(translation);
 	p2.geometryChanged();
+
+	if(debug && matchSegsDebug){
+	    PrintShape("p2", p2);
+	}
 	//System.exit(0);
 	return null;
     }
@@ -359,16 +395,35 @@ class Util {
 	}
     }
 
-    public static LinearRing ConvertToLinearRing(Geometry g){
+    public static LinearRing convertToLinearRing(Geometry g){
+	if(g instanceof LinearRing){
+	    return (LinearRing)g;
+	}
+	if(g instanceof LineString){
+	    if(((LineString)g).isRing()){
+		return geometryFactory.createLinearRing(((LineString)g).getCoordinates());
+	    }
+	    System.out.println("t0");
+	    return null;
+	}
 	if(! (g instanceof Polygon)){
+	    if(debug){
+		System.out.println(g.getClass().getName());
+		System.out.println("t1");
+	    }
 	    return null;
 	}
 	Polygon p = (Polygon)g;
 	if(p.getNumInteriorRing() != 0){
+	    //System.out.println("t2");
 	    return null;
 	}
 	if(!(p.getExteriorRing() instanceof LinearRing)){
+	    System.out.println("t3");
 	    return null;
+	}
+	if(debug){
+	    System.out.println("t4");
 	}
 	return (LinearRing)p.getExteriorRing();
     }

@@ -47,7 +47,8 @@ class GUIOutput {
 class Renderer extends JPanel
 {
     //public synchronized Geometry geometry = null;
-    public static  int NumberOfObjects = 5;
+    public static  int NumberOfObjects = 50;
+    public static int xOffset = 20;
     private volatile LinearRing[] linearRings = new LinearRing[NumberOfObjects];
     private Color[] linearRingColors = new Color[NumberOfObjects];
     private Color defaultColor = new Color(255, 0, 0);
@@ -117,7 +118,7 @@ class Renderer extends JPanel
 	    Point p2 = linearRings[index].getPointN(i + 1);
 	    int titleBarOffset = -35;
 	    //translate and then flip the y-coordinate for the output.
-	    g.drawLine((int)p1.getX(), -1 * ((int)p1.getY() - height) + titleBarOffset, (int)p2.getX(), -1 * ( (int)p2.getY() - height) + titleBarOffset);
+	    g.drawLine((int)p1.getX() + xOffset, -1 * ((int)p1.getY() - height) + titleBarOffset, (int)p2.getX() + xOffset, -1 * ( (int)p2.getY() - height) + titleBarOffset);
 	}
 	
     }
@@ -158,13 +159,16 @@ class Runner
 	pieces.add(makeSmallTriangle());
 	pieces.add(makeMediumTriangle());
 	pieces.add(makeLargeTriangle());
+	pieces.add(makeLargeTriangle());
 	pieces.add(makeSquare());
 	pieces.add(makeParallelogram());
 	return pieces;
     }
 
+    public static double scaleFactor = 400;
+
     public static LinearRing makeSmallTriangle(){
-	double side = 1.0/Math.sqrt(2) * 1/2.0;
+	double side = 1.0/Math.sqrt(2.0) * 1/2.0 * scaleFactor;
 	Coordinate p1 = new Coordinate(0, 0);
 	Coordinate p2 = new Coordinate(0, side);
 	Coordinate p3 = new Coordinate(side, 0);
@@ -174,7 +178,7 @@ class Runner
     }
 
     public static LinearRing makeMediumTriangle(){
-	double side = 1.0/2.0;
+	double side = 1.0/2.0 * scaleFactor;
 	Coordinate p1 = new Coordinate(0, 0);
 	Coordinate p2 = new Coordinate(0, side);
 	Coordinate p3 = new Coordinate(side, 0);	
@@ -183,7 +187,7 @@ class Runner
     }
 
     public static LinearRing makeLargeTriangle(){
-	double side = 1.0/Math.sqrt(2);
+	double side = 1.0/Math.sqrt(2.0) * scaleFactor;
 	Coordinate p1 = new Coordinate(0, 0);
 	Coordinate p2 = new Coordinate(0, side);
 	Coordinate p3 = new Coordinate(side, 0);
@@ -193,16 +197,16 @@ class Runner
     }
 
     public static LinearRing makeSquare(){
-	double side  = 1.0/2.0 * 1.0/Math.sqrt(2.0);
+	double side  = 1.0/2.0 * 1.0/Math.sqrt(2.0) * scaleFactor;
 	return Util.makeSquare(side);
     }
 
     public static LinearRing makeParallelogram(){
 	Coordinate[] coords = new Coordinate[5];
 	coords[0] = new Coordinate(0, 0);
-	coords[1] = new Coordinate(0, 0.5);
-	coords[2] = new Coordinate(0.25, 0.75);
-	coords[3] = new Coordinate(0.25, 0.25);
+	coords[1] = new Coordinate(0, 0.5 * scaleFactor);
+	coords[2] = new Coordinate(0.25 * scaleFactor, 0.75 * scaleFactor);
+	coords[3] = new Coordinate(0.25 * scaleFactor, 0.25 * scaleFactor);
 	coords[4] = new Coordinate(0, 0);
 	return geometryFactory.createLinearRing(coords);
     }
@@ -212,6 +216,31 @@ class Runner
      public static void renderGeometry() {
  	//Coordinate ptc = new Coordinate(14.0d, 14.0d);	
  	Renderer renderer = gui.getRenderer();
+	LinearRing shape = Util.makeSquare(1.0 * scaleFactor);
+	Polygon poly = new Polygon(shape, null, geometryFactory);
+	ArrayList<LinearRing> pieces = makeTangramPieces();
+	System.out.println("Fit:" + Util.Fit(shape, pieces));
+	//Geometry g = poly.difference(new Polygon(pieces.get(0), null, geometryFactory));
+	//g = g.difference(new Polygon(pieces.get(1), null, geometryFactory));
+	//LinearRing newShape = Util.convertToLinearRing(g);
+	//Util.PrintShape("med tri", makeMediumTriangle());
+	//Util.PrintShape("small tri", makeSmallTriangle());
+	LinearRing mediumTri = makeMediumTriangle();
+	//Util.debug = true;
+	//System.out.println("FitShape newShape:" + Util.FitShape(newShape, mediumTri));
+	//Util.debug = false;
+	int offset = 1;
+	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
+	//Util.PrintShape("g", (LineString)g);
+	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
+	//renderer.setLinearRing(mediumTri, 1);
+	//renderer.setLinearRingColor(new Color(0, 0, 0), 1);
+	System.out.println("pieces.size():" + pieces.size());
+	for(int i = 4; i < pieces.size(); i++) {
+	    renderer.setLinearRing(pieces.get(i), i + offset);
+	    renderer.setLinearRingColor(new Color(40 * i, 35 * i, 30 * i), i + offset);
+	    Util.PrintShape("piece " + i, pieces.get(i));
+	}
  	/*renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 1);
 	  renderer.setLinearRing(makeSquare(100), 2);*/
 	/*int offset = 2;
