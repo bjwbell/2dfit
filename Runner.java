@@ -230,17 +230,18 @@ class Runner
 	//System.out.println("FitShape newShape:" + Util.FitShape(newShape, mediumTri));
 	//Util.debug = false;
 	int offset = 1;
+	renderer.setLinearRing(Util.resultShape, 0);
 	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
 	//Util.PrintShape("g", (LineString)g);
 	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
 	//renderer.setLinearRing(mediumTri, 1);
 	//renderer.setLinearRingColor(new Color(0, 0, 0), 1);
-	System.out.println("pieces.size():" + pieces.size());
+	/*System.out.println("pieces.size():" + pieces.size());
 	for(int i = 4; i < pieces.size(); i++) {
 	    renderer.setLinearRing(pieces.get(i), i + offset);
 	    renderer.setLinearRingColor(new Color(40 * i, 35 * i, 30 * i), i + offset);
 	    Util.PrintShape("piece " + i, pieces.get(i));
-	}
+	    }*/
  	/*renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 1);
 	  renderer.setLinearRing(makeSquare(100), 2);*/
 	/*int offset = 2;

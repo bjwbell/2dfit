@@ -13,6 +13,7 @@ import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.algorithm.*;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
+import com.vividsolutions.jts.geom.TopologyException;
 import java.util.*;
 
 class Util {
@@ -121,6 +122,8 @@ class Util {
 	return list;
     }
 
+    public static Boolean stop = false;
+    public static LinearRing resultShape = null;
     public static Boolean Fit(LinearRing p1, List<LinearRing> shapes){
 	if(shapes.size() == 0){
 	    Polygon poly1 = new Polygon(p1, null, geometryFactory);
@@ -134,6 +137,12 @@ class Util {
 	    
 	    while(true){
 		FitShapeReturn ret = FitShape(p1, shapes.get(k), i, j);
+		if(ret != null && stop){
+		    resultShape = ret.resultShape;
+		}
+		if(stop) {
+		    return true;
+		}
 		if(ret == null || ret.resultShape == null){
 		    break;
 		}
@@ -270,6 +279,18 @@ class Util {
 	return rot;
     }
 
+    public static LinearRing copy(LinearRing p){
+	Coordinate[] coords = p.getCoordinates();
+	Coordinate[] ccoords = new Coordinate[coords.length];
+	for(int i = 0; i < coords.length; i++){
+	    Coordinate coord = new Coordinate();
+	    coord.x = coords[i].x;
+	    coord.y = coords[i].y;
+	    ccoords[i] = coord;
+	}
+	return geometryFactory.createLinearRing(ccoords);
+    }
+
     public static LinearRing MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, LinearRing p1, LinearRing p2){
 	
 	//System.out.println("j:" + j);
@@ -282,6 +303,7 @@ class Util {
 	PrintCoord("c21", c21);
 	PrintCoord("c22", c22);
 	*/
+	p2 = copy(p2);
 	if(debug && matchSegsDebug){
 	    PrintShape("p2", p2);
 	}
@@ -337,17 +359,26 @@ class Util {
 	}
 	Polygon poly1 = new Polygon(p1, null, geometryFactory);
 	Polygon poly2 = new Polygon(p2, null, geometryFactory);
-	
-	if(poly1.covers(poly2)){
-	    Geometry g = poly1.difference(poly2);
-	    LinearRing newP1 = convertToLinearRing(g);
-	    if(newP1 != null){
-		//System.out.println("returning newP1");
-		return newP1;
-	    }else{
-		//System.out.println("Returning null");
-		//return null;
+	verify(p1);
+	verify(p2);
+	try{
+	    if(poly1.covers(poly2)){
+		Geometry g = poly1.difference(poly2);
+		LinearRing newP1 = convertToLinearRing(g);
+		if(newP1 != null){
+		    //System.out.println("returning newP1");
+		    return newP1;
+		}else{
+		    //System.out.println("Returning null");
+		    //return null;
+		}
 	    }
+	}catch(TopologyException ex){
+	    PrintShape("p1", p1);
+	    PrintShape("p2", p2);
+	    stop = true;
+	    return p1;
+	    //System.exit(0);
 	}
 	//PrintShape("p2", p2);	
 	//System.out.println("sineTheta: " + -1 * sineTheta);
@@ -370,6 +401,10 @@ class Util {
 	}
 	//System.exit(0);
 	return null;
+    }
+
+    public static void verify(LinearRing p){
+	
     }
     
     //makes a new vector going from c1 to c2.
