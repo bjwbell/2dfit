@@ -213,12 +213,17 @@ class Runner
 
 
 
-     public static void renderGeometry() {
- 	//Coordinate ptc = new Coordinate(14.0d, 14.0d);	
+     public static void renderGeometry() {	
+	 //Coordinate ptc = new Coordinate(14.0d, 14.0d);	
  	Renderer renderer = gui.getRenderer();
+	
 	LinearRing shape = Util.makeSquare(1.0 * scaleFactor);
 	Polygon poly = new Polygon(shape, null, geometryFactory);
 	ArrayList<LinearRing> pieces = makeTangramPieces();
+	renderer.setLinearRing(shape, 0);
+	/*for(int i = 0; i < pieces.size(); i++){
+	    renderer.setLinearRing(pieces.get(i), i + 1);
+	    }*/
 	System.out.println("Fit:" + Util.Fit(shape, pieces));
 	//Geometry g = poly.difference(new Polygon(pieces.get(0), null, geometryFactory));
 	//g = g.difference(new Polygon(pieces.get(1), null, geometryFactory));
@@ -231,6 +236,7 @@ class Runner
 	//Util.debug = false;
 	int offset = 1;
 	renderer.setLinearRing(Util.resultShape, 0);
+
 	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
 	//Util.PrintShape("g", (LineString)g);
 	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);

@@ -374,6 +374,7 @@ class Util {
 		}
 	    }
 	}catch(TopologyException ex){
+	    System.out.println(ex.getMessage());
 	    PrintShape("p1", p1);
 	    PrintShape("p2", p2);
 	    stop = true;
