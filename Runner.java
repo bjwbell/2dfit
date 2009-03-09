@@ -155,11 +155,12 @@ class Runner
 
     public static ArrayList<LinearRing> makeTangramPieces(){
 	ArrayList<LinearRing> pieces = new ArrayList<LinearRing>();
-	pieces.add(makeSmallTriangle());
-	pieces.add(makeSmallTriangle());
-	pieces.add(makeMediumTriangle());
 	pieces.add(makeLargeTriangle());
 	pieces.add(makeLargeTriangle());
+	pieces.add(makeMediumTriangle());	
+	pieces.add(makeSmallTriangle());
+	pieces.add(makeSmallTriangle());
+
 	pieces.add(makeSquare());
 	pieces.add(makeParallelogram());
 	return pieces;
@@ -211,88 +212,71 @@ class Runner
 	return geometryFactory.createLinearRing(coords);
     }
 
+    public static void fit1(){
+	Renderer renderer = gui.getRenderer();
+	
+	LinearRing s1 = Util.makeS1(100);
+	Coordinate p1 = new Coordinate(100, 0);
+	Coordinate p2 = new Coordinate(0, 0);
+	Coordinate p3 = new Coordinate(100, 100);
+	
+	LinearRing tri1 = Util.makeTriangle(p1, p2, p3);
+	LinearRing tri2 = Util.makeTriangle(new Coordinate(200, 0), new Coordinate(250, 50), new Coordinate(200, 100));
+	LinearRing newS1 = null;
+	Util.PrintShape("s1", s1);
 
+	
+	Polygon poly1 = new Polygon(s1, null, geometryFactory);
+	Geometry poly1epsilon = new Polygon(s1, null, geometryFactory);
+	poly1epsilon = poly1epsilon.buffer(100 * Util.EPSILON).union(poly1epsilon);
 
-     public static void renderGeometry() {	
-	 //Coordinate ptc = new Coordinate(14.0d, 14.0d);	
- 	Renderer renderer = gui.getRenderer();
+	Polygon poly2 = new Polygon(tri1, null, geometryFactory);
+	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
+	
+	ArrayList<LinearRing> shapes = new ArrayList<LinearRing>();
+	shapes.add(tri1);
+	shapes.add(tri2);
+	System.out.println("Fit:" + Util.Fit(s1, shapes));
+	Util.PrintShape("tri1", tri1);	
+	Util.PrintShape("tri2", tri2);
+	
+	System.out.println("s1.covers(tri1):" + poly1.covers(new Polygon(tri1, null, geometryFactory)));
+	System.out.println("s1.covers(tri2):" + poly1.covers(new Polygon(tri2, null, geometryFactory)));
+
+	System.out.println("s1epsilon.covers(tri1):" + poly1epsilon.covers(new Polygon(tri1, null, geometryFactory)));
+	System.out.println("s1epsilon.covers(tri2):" + poly1epsilon.covers(new Polygon(tri2, null, geometryFactory)));
+	
+	//Util.PrintShape("newS1", newS1);
+	renderer.setLinearRing(s1, 0);
+	renderer.setLinearRingColor(new Color(0, 0, 0), 0);
+	renderer.setLinearRing(tri1, 1);
+	renderer.setLinearRingColor(new Color(255, 0, 0), 1);
+	renderer.setLinearRing(tri2, 2);
+	renderer.setLinearRingColor(new Color(0, 255, 0), 2);
+    
+    }
+    
+    public static void fitTangram(){
+	Renderer renderer = gui.getRenderer();
 	
 	LinearRing shape = Util.makeSquare(1.0 * scaleFactor);
 	Polygon poly = new Polygon(shape, null, geometryFactory);
 	ArrayList<LinearRing> pieces = makeTangramPieces();
+	
 	renderer.setLinearRing(shape, 0);
-	/*for(int i = 0; i < pieces.size(); i++){
+	for(int i = 0; i < pieces.size(); i++){
 	    renderer.setLinearRing(pieces.get(i), i + 1);
-	    }*/
+	}
 	System.out.println("Fit:" + Util.Fit(shape, pieces));
-	//Geometry g = poly.difference(new Polygon(pieces.get(0), null, geometryFactory));
-	//g = g.difference(new Polygon(pieces.get(1), null, geometryFactory));
-	//LinearRing newShape = Util.convertToLinearRing(g);
-	//Util.PrintShape("med tri", makeMediumTriangle());
-	//Util.PrintShape("small tri", makeSmallTriangle());
 	LinearRing mediumTri = makeMediumTriangle();
-	//Util.debug = true;
-	//System.out.println("FitShape newShape:" + Util.FitShape(newShape, mediumTri));
-	//Util.debug = false;
-	int offset = 1;
-	renderer.setLinearRing(Util.resultShape, 0);
+	//renderer.setLinearRing(Util.resultShape, 0);
+	
 
-	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
-	//Util.PrintShape("g", (LineString)g);
-	//renderer.setLinearRing(Util.convertToLinearRing(g), 0);
-	//renderer.setLinearRing(mediumTri, 1);
-	//renderer.setLinearRingColor(new Color(0, 0, 0), 1);
-	/*System.out.println("pieces.size():" + pieces.size());
-	for(int i = 4; i < pieces.size(); i++) {
-	    renderer.setLinearRing(pieces.get(i), i + offset);
-	    renderer.setLinearRingColor(new Color(40 * i, 35 * i, 30 * i), i + offset);
-	    Util.PrintShape("piece " + i, pieces.get(i));
-	    }*/
- 	/*renderer.setLinearRing(makeTriangle(new Coordinate(0, 0), new Coordinate(400, 400), new Coordinate(400, 0)), 1);
-	  renderer.setLinearRing(makeSquare(100), 2);*/
-	/*int offset = 2;
-	LinearRing shape = Util.makeS2(200);//makeSquare(200);
-	renderer.setLinearRing(shape, 0);
-	Vector<LinearRing> shapes = Util.decomposeTriangles(shape, 1);
-	System.out.println("number of shapes:" + shapes.size());
-	for(int i = 0; i < shapes.size() && i + offset < renderer.NumberOfObjects; i++){
-	    if(i < 1){
-		continue;
-	    }
-	    renderer.setLinearRing(shapes.get(i), i + offset);
-	    }*/
+    }
 
-	/*LinearRing s1 = Util.makeS1(100);
-	Coordinate p1 = new Coordinate(0, 0);
-	Coordinate p2 = new Coordinate(-100, 0);
-	Coordinate p3 = new Coordinate(0, 100);
-	
-	LinearRing tri = Util.makeTriangle(p1, p2, p3);
-	LinearRing tri2 = Util.makeTriangle(new Coordinate(100, 0), new Coordinate(50, 50), new Coordinate(100, 100));
-	LinearRing newS1 = null;
-	Util.PrintShape("s1", s1);
-	Util.PrintShape("tri", tri);
-	
-	Polygon poly1 = new Polygon(s1, null, geometryFactory);
-	Polygon poly2 = new Polygon(tri, null, geometryFactory);
-	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
-	
-	//newS1 = Util.FitShape(s1, tri);
-	ArrayList<LinearRing> shapes = new ArrayList<LinearRing>();
-	shapes.add(tri);
-	shapes.add(tri2);
-	//Util.Fit(s1, shapes);
-	//Util.FitShape(s1, tri2);
-	System.out.println("Fit:" + Util.Fit(s1, shapes));
-	//Util.PrintShape("newS1", newS1);
-	renderer.setLinearRing(s1, 0);
-	renderer.setLinearRingColor(new Color(0, 0, 0), 0);
-	renderer.setLinearRing(tri, 1);
-	renderer.setLinearRingColor(new Color(255, 0, 0), 1);
-	//renderer.setLinearRing(newS1, 2);
-	//renderer.setLinearRingColor(new Color(0, 255, 0), 2);
-	renderer.setLinearRing(tri2, 2);
-	renderer.setLinearRingColor(new Color(0, 255, 0), 2);*/
+    public static void renderGeometry() {	
+	//fit1();
+	fitTangram();
     }
 
 

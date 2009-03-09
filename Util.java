@@ -129,6 +129,7 @@ class Util {
 	    Polygon poly1 = new Polygon(p1, null, geometryFactory);
 	    return p1.getArea() < EPSILON;
 	}
+	int numberOfShapes = shapes.size();
 	for(int k = 0; k < shapes.size(); k++){
 	    int i = 0;
 	    int j = 0;
@@ -136,7 +137,7 @@ class Util {
 	    shapes2.remove(k);
 	    
 	    while(true){
-		FitShapeReturn ret = FitShape(p1, shapes.get(k), i, j);
+		FitShapeReturn ret = FitShape(p1, shapes.get(k), i, j, numberOfShapes);
 		if(ret != null && stop){
 		    resultShape = ret.resultShape;
 		}
@@ -196,7 +197,7 @@ class Util {
     public static Boolean matchSegsDebug = false;
 
     // fits p2 to p1. That is p2 is a subset of p1.
-    public static FitShapeReturn FitShape(LinearRing p1, LinearRing p2, int initialP1CoordIdx, int initialP2CoordIdx) {
+    public static FitShapeReturn FitShape(LinearRing p1, LinearRing p2, int initialP1CoordIdx, int initialP2CoordIdx, int numberOfShapes) {
 	FitShapeReturn ret = new FitShapeReturn();	
 	CoordinateSequence s1 = p1.getCoordinateSequence();
 	boolean b = false;
@@ -222,7 +223,7 @@ class Util {
 		//}
 		LinearRing r = null;
 		//System.out.println("t1");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2);
+		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
 		if(r != null){
 		    ret.resultShape = r;
 		    ret.p1CoordIdx = i;
@@ -231,7 +232,7 @@ class Util {
 		}
 		c22 = s2.getCoordinate(getPrevCoordIdx(p2, j));
 		//System.out.println("t2");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2);
+		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
 		if(r != null){
 		    ret.resultShape = r;
 		    ret.p1CoordIdx = i;
@@ -242,7 +243,7 @@ class Util {
 
 		c12 = s1.getCoordinate(getPrevCoordIdx(p1, i));
 		//System.out.println("t3");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2);
+		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
 		if(r != null){
 		    ret.resultShape = r;
 		    ret.p1CoordIdx = i;
@@ -253,7 +254,7 @@ class Util {
 
 		c22 = s2.getCoordinate(getNextCoordIdx(p2, j));
 		//System.out.println("t4");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2);
+		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
 		if(r != null){
 		    ret.resultShape = r;
 		    ret.p1CoordIdx = i;
@@ -291,7 +292,7 @@ class Util {
 	return geometryFactory.createLinearRing(ccoords);
     }
 
-    public static LinearRing MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, LinearRing p1, LinearRing p2){
+    public static LinearRing MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, LinearRing p1, LinearRing pp2, int numberOfShapes){
 	
 	//System.out.println("j:" + j);
 	
@@ -303,7 +304,10 @@ class Util {
 	PrintCoord("c21", c21);
 	PrintCoord("c22", c22);
 	*/
-	p2 = copy(p2);
+	LinearRing p2NoScale = copy(pp2);
+	LinearRing p2 = copy(pp2);
+
+	p2.apply(AffineTransformation.scaleInstance(1+EPSILON, 1+EPSILON));
 	if(debug && matchSegsDebug){
 	    PrintShape("p2", p2);
 	}
@@ -312,6 +316,7 @@ class Util {
 	//System.out.println("translate:" + translateX + ", " + translateY);
 	CoordinateSequence s1 = p1.getCoordinateSequence();
 	CoordinateSequence s2 = p2.getCoordinateSequence();
+	CoordinateSequence s22 = p2NoScale.getCoordinateSequence();
 	AffineTransformation translation = new AffineTransformation();
 	if(matchSegsDebug){
 	    System.out.println("transX:" + translateX);
@@ -319,7 +324,11 @@ class Util {
 	}
 	translation.translate(translateX, translateY);
 	p2.apply(translation);
+	p2NoScale.apply(translation);
+	pp2.apply(translation);
 	p2.geometryChanged();
+	p2NoScale.geometryChanged();
+	pp2.geometryChanged();
 	if(matchSegsDebug){
 	    PrintCoord("c11", c11);
 	    PrintShape("trans p2", p2);
@@ -353,18 +362,26 @@ class Util {
 	//	rotation.rotate(sineTheta, cosTheta, c11.x, c11.y);
 	//PrintShape("p2", p2);		
 	p2.apply(rotation);
+	p2NoScale.apply(rotation);
+	pp2.apply(rotation);
 	p2.geometryChanged();
+	p2NoScale.geometryChanged();
+	pp2.geometryChanged();
 	if(matchSegsDebug){
 	    PrintShape("poly2", p2);
 	}
 	Polygon poly1 = new Polygon(p1, null, geometryFactory);
+	Geometry g = poly1.buffer(2 * numberOfShapes * EPSILON);
+	g = g.union(poly1);
 	Polygon poly2 = new Polygon(p2, null, geometryFactory);
+	Polygon poly22 = new Polygon(p2NoScale, null, geometryFactory);
 	verify(p1);
 	verify(p2);
 	try{
-	    if(poly1.covers(poly2)){
-		Geometry g = poly1.difference(poly2);
-		LinearRing newP1 = convertToLinearRing(g);
+	    if(g.covers(poly22)) {
+	    //if(poly1.covers(poly2)){
+		Geometry gg = poly1.difference(poly2);
+		LinearRing newP1 = convertToLinearRing(gg);
 		if(newP1 != null){
 		    //System.out.println("returning newP1");
 		    return newP1;
@@ -387,15 +404,14 @@ class Util {
 	//PrintCoord("c11", c11);
 	rotation = new AffineTransformation();
 	rotation = Rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
-	//rotation.rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
-	p2.apply(rotation);
-	p2.geometryChanged();
+	pp2.apply(rotation);
+	pp2.geometryChanged();
 	
 	translation = new AffineTransformation();
 	//PrintShape("p2", p2);	
 	translation.translate(-1 * translateX, -1 * translateY);
-	p2.apply(translation);
-	p2.geometryChanged();
+	pp2.apply(translation);
+	pp2.geometryChanged();
 
 	if(debug && matchSegsDebug){
 	    PrintShape("p2", p2);
