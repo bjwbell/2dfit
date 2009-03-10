@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.0"
+   width="744.09448"
+   height="1052.3622"
+   id="svg3283">
+  <defs
+     id="defs3285" />
+  <g
+     id="layer1">
+    <path
+       d="M 80.261496,700.29749 L 218.13945,279.24778 L 365.86585,181.1951 L 507.02663,279.24778 L 671.16707,677.22627 L 638.33898,740.67211 L 569.4,533.03116 L 487.32978,342.69362 L 365.86585,233.10535 L 241.11912,325.39022 L 122.93801,706.06528 L 80.261496,700.29749 z"
+       id="path3293"
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.52298665px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <path
+       d="M 342.85715,123.79076 A 100,57.142857 0 1 1 142.85715,123.79076 A 100,57.142857 0 1 1 342.85715,123.79076 z"
+       transform="matrix(1.5464965,0,0,2.7563689,-181.29201,145.43491)"
+       id="path2385"
+       style="opacity:1;fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       x="54.285713"
+       y="135.21933"
+       id="text3808"
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
+         x="54.285713"
+         y="135.21933"
+         id="tspan3810">Bounding circle</tspan></text>
+    <text
+       x="342.85715"
+       y="852.36218"
+       id="text3812"
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
+         x="342.85715"
+         y="852.36218"
+         id="tspan3814">Polygon s</tspan></text>
+    <path
+       d="M 77.142857,143.79075 L 94.285714,360.93361"
+       id="path3816"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <path
+       d="M 422.85714,823.79075 L 600,595.21933"
+       id="path3818"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+  </g>
+</svg>

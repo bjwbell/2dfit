@@ -106,7 +106,7 @@ class Util {
 
 
     public static LinearRing FitShape(LinearRing p1, LinearRing p2){
-	FitShapeReturn ret = FitShape(p1, p2, 0, 0);
+	FitShapeReturn ret = FitShape(p1, p2, 0, 0, 1);
 	if(ret == null){
 	    return null;
 	};
@@ -129,6 +129,7 @@ class Util {
 	    Polygon poly1 = new Polygon(p1, null, geometryFactory);
 	    return p1.getArea() < EPSILON;
 	}
+	Util.g = null;
 	int numberOfShapes = shapes.size();
 	for(int k = 0; k < shapes.size(); k++){
 	    int i = 0;
@@ -163,7 +164,7 @@ class Util {
 	return false;
 	
     }
-
+    
     public static class CoordIdxs {
 	int p1CoordIdx;
 	int p2CoordIdx;
@@ -269,6 +270,7 @@ class Util {
 	    }
 	    
 	}
+	Util.g = null;
 	return null;
     }
 
@@ -291,6 +293,8 @@ class Util {
 	}
 	return geometryFactory.createLinearRing(ccoords);
     }
+
+    private static Geometry g = null;
 
     public static LinearRing MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, LinearRing p1, LinearRing pp2, int numberOfShapes){
 	
@@ -371,8 +375,11 @@ class Util {
 	    PrintShape("poly2", p2);
 	}
 	Polygon poly1 = new Polygon(p1, null, geometryFactory);
-	Geometry g = poly1.buffer(2 * numberOfShapes * EPSILON);
-	g = g.union(poly1);
+	if(Util.g == null){
+	    //System.out.println("creating g");
+	    Util.g = poly1.buffer(2 * numberOfShapes * EPSILON);
+	    Util.g = Util.g.union(poly1);
+	}
 	Polygon poly2 = new Polygon(p2, null, geometryFactory);
 	Polygon poly22 = new Polygon(p2NoScale, null, geometryFactory);
 	verify(p1);
@@ -383,6 +390,7 @@ class Util {
 		Geometry gg = poly1.difference(poly2);
 		LinearRing newP1 = convertToLinearRing(gg);
 		if(newP1 != null){
+		    g = null;
 		    //System.out.println("returning newP1");
 		    return newP1;
 		}else{
