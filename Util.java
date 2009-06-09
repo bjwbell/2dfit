@@ -18,7 +18,7 @@ import java.util.*;
 
 class Util {
     public static GeometryFactory geometryFactory = null;
-    public static double EPSILON = 1e-6;
+    public static double EPSILON = 1e-4;
     public static Vector<LinearRing> decomposeTriangles(LinearRing lr, int numberOfTriangles){
  	if(numberOfTriangles == 0){
  	    Vector<LinearRing> shapes = new Vector<LinearRing>();
