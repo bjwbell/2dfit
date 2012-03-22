@@ -1,4 +1,4 @@
-//JTS imports
+//JTS imports, ...
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Envelope;
