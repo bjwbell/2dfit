@@ -1,1 +1,1 @@
-java -classpath .;jts-1.9.jar Test
+java -classpath .;jts-1.12.jar Test

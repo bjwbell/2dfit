@@ -3,10 +3,14 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.GeometryCollectionIterator;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -14,6 +18,8 @@ import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.algorithm.*;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 import com.vividsolutions.jts.geom.TopologyException;
+import com.vividsolutions.jts.operation.overlay.snap.GeometrySnapper;
+import com.vividsolutions.jts.operation.buffer.BufferParameters;
 import java.util.*;
 
 class Util {
@@ -59,7 +65,18 @@ class Util {
  	return null;
      }
 
-
+    
+    /**
+     * Makes the shape
+     * |       |
+     * | |   | | 
+     * |   |   |
+     * |       |
+     * |-------|  
+     *   
+     * @param s upper right corner is at coordinate (s,s).
+     * @return shape
+     */
     public static LinearRing makeS1(int s){
 	Coordinate[] c = new Coordinate[6];
 	c[0] = new Coordinate(0, 0);
@@ -71,362 +88,551 @@ class Util {
 	return geometryFactory.createLinearRing(c);
     }
     
+    /**
+     * Makes the shape
+     * 
+     *           
+     *      * |
+     *   *    |
+     * *      |
+     *  *     |
+     *   *    |
+     *  *     |
+     * *------| 
+     * 
+     * @param s, upper right corner is at coordinate (s,s).
+     * @return shape
+     */
     public static LinearRing makeS2(int s){
-	Coordinate[] c = new Coordinate[6];
-	c[0] = new Coordinate(0, 0);
-	c[1] = new Coordinate(s/2, s/2);
-	c[2] = new Coordinate(0, s);
-	c[3] = new Coordinate(s, s);
-	c[4] = new Coordinate(s, 0);
-	c[5] = new Coordinate(0, 0);
-	return geometryFactory.createLinearRing(c);
+    	Coordinate[] c = new Coordinate[6];
+    	c[0] = new Coordinate(0, 0);
+    	c[1] = new Coordinate(s/2, s/2);
+    	c[2] = new Coordinate(0, s);
+    	c[3] = new Coordinate(s, s);
+    	c[4] = new Coordinate(s, 0);
+    	c[5] = new Coordinate(0, 0);
+    	return geometryFactory.createLinearRing(c);
+    }
+    
+    /**
+     * Creates triangle with sides of length size.
+     * @param size
+     * @return triangle
+     */
+    public static LinearRing makeTriangle(double size){
+    	return makeTriangle(new Coordinate(0, 0), new Coordinate(0, size), new Coordinate(size, 0));
     }
     
     public static LinearRing makeTriangle(Coordinate p1, Coordinate p2, Coordinate p3) {
-	Coordinate[] coords = new Coordinate[4];
-	coords[0] = p1;
-	coords[1] = p2;
-	coords[2] = p3;
-	coords[3] = new Coordinate(p1.x, p1.y);
-	LinearRing tri = geometryFactory.createLinearRing(coords);
-	return tri;
+    	Coordinate[] coords = new Coordinate[4];
+    	coords[0] = p1;
+    	coords[1] = p2;
+    	coords[2] = p3;
+    	coords[3] = new Coordinate(p1.x, p1.y);
+    	LinearRing tri = geometryFactory.createLinearRing(coords);
+    	return tri;
     }
 
 
     public static LinearRing makeSquare(double segmentLength) {
-	Coordinate[] coords = new Coordinate[5];
-	coords[0] = new Coordinate(0, 0);
-	coords[1] = new Coordinate(segmentLength, 0);
-	coords[2] = new Coordinate(segmentLength, segmentLength);
-	coords[3] = new Coordinate(0, segmentLength);
-	coords[4] = new Coordinate(0, 0);	
-	return geometryFactory.createLinearRing(coords);
+    	Coordinate[] coords = new Coordinate[5];
+    	coords[0] = new Coordinate(0, 0);
+    	coords[1] = new Coordinate(segmentLength, 0);
+    	coords[2] = new Coordinate(segmentLength, segmentLength);
+    	coords[3] = new Coordinate(0, segmentLength);
+    	coords[4] = new Coordinate(0, 0);	
+    	return geometryFactory.createLinearRing(coords);
     }
 
 
 
-    public static LinearRing FitShape(LinearRing p1, LinearRing p2){
-	FitShapeReturn ret = FitShape(p1, p2, 0, 0, 1);
-	if(ret == null){
-	    return null;
-	};
-	return ret.resultShape;
+    /*public static LinearRing FitShape(LinearRing p1, LinearRing p2) throws Exception {
+    	FitShapeReturn ret = FitShape(p1, p2, 0, 0, 1);
+    	if(ret == null){
+    		return null;
+    	};
+    	return ret.resultShape;
+    }*/
+
+
+    public static ArrayList<Shape> clone(List<Shape> shapes){
+    	assert shapes != null;
+    	ArrayList<Shape> list = new ArrayList<Shape>();
+    	for(Shape shape : shapes){
+    		list.add(shape);
+    	}
+    	return list;
+    }
+    
+    public static boolean CanSkipCoord(Shape shape, int coordIndex){
+
+    	// Triangle, can skip last coordinate.
+    	if ((shape.type == TypeOfShape.LARGE_TRIANGLE || shape.type == TypeOfShape.MEDIUM_TRIANGLE || 
+    		shape.type == TypeOfShape.SMALL_TRIANGLE) && coordIndex > 1)
+    	{
+    		return true;
+    	}
+
+    	// Square, can skip all but first coordinate.
+    	if (shape.type == TypeOfShape.SQUARE && coordIndex > 0)
+    	{
+    		return true;
+    	}
+    	
+    	if (shape.type == TypeOfShape.PARALLELOGRAM && (coordIndex == 1 || coordIndex == 3)){
+    		return true;    	
+    	}
+    	
+    	return false;
     }
 
-
-    public static ArrayList<LinearRing> clone(List<LinearRing> shapes){
-	ArrayList<LinearRing> list = new ArrayList<LinearRing>();
-	for(LinearRing shape : shapes){
-	    list.add(shape);
-	}
-	return list;
+    public static boolean CanSkipShape(List<Shape> shapes, int shapeIndex){
+    	// The list of shapes is ordered as large Tri1, large Tri2, medium Tri, small Tri1, small Tri2, parallelogram, square
+    	// Can skip large Tri2, and small tri2, which have index of 
+    	// 1 and 4 respectively.
+    	int largeTriangleIdx1 = -1;
+    	int largeTriangleIdx2 = -1;
+    	int smallTriangleIdx1 = -1;
+    	int smallTriangleIdx2 = -1;
+    	for (int i = 0; i < shapes.size(); i++) 
+    	{
+    		if (shapes.get(i).type == TypeOfShape.LARGE_TRIANGLE) {
+    			if (largeTriangleIdx1 == -1){
+    				largeTriangleIdx1 = i;
+    			} else {
+    				largeTriangleIdx2 = i;
+    			}
+    		}
+    		
+    		if (shapes.get(i).type == TypeOfShape.SMALL_TRIANGLE) {
+    			if (smallTriangleIdx1 == -1){
+    				smallTriangleIdx1 = i;
+    			} else {
+    				smallTriangleIdx2 = i;
+    			}
+    		}
+    	}
+    	
+    		
+    	return (shapeIndex == largeTriangleIdx2) || 
+    			(shapeIndex == smallTriangleIdx2);
     }
+   
+    
+    public static int TotalNumShapes;
+    public static boolean TRACE = false;
+    public static List<Shape> originalShapes = null;
+    public static int getShapeIndex(LinearRing shape)
+    {
+    	return originalShapes.indexOf(shape);
+    }
+    
+    public static String toStringTraceData(List<int[]> traceData){
+    	String str = "";
+    	for (int i = 0; i < traceData.size(); i++){
+    		str = str + (str != "" ? "," : "") + "[" + traceData.get(i)[0] + "/" + traceData.get(i)[1] + ", " + 
+    				traceData.get(i)[2] + "/" + traceData.get(i)[3] + "," + traceData.get(i)[4] + "/" + traceData.get(i)[5] + "]";
+    	}
+    	return str;
+    }
+    
+    public static List<int[]> cloneTrace(List<int[]> trace){
+    	List<int[]> clone = new ArrayList<int[]>();
+    	for (int i = 0; i < trace.size(); i++){
+    		clone.add(trace.get(i));
+    	}
+    	return clone;
+    }
+    
+    public static boolean flipped = false;
+    public static Boolean Fit(MultiPolygon p1, List<Shape> shapes, List<int[]> traceData) throws Exception {
+    	if (traceData == null && TRACE){
+    		traceData = new ArrayList<int[]>();    		
+    	}else if (TRACE){
+    		traceData = cloneTrace(traceData);
+    	}
+    	if(shapes.size() == 0){
+    		return true; //p1.getArea() < EPSILON;
+    		//MultiPolygon poly1 = new MultiPolygon(p1, null, geometryFactory);
+    		//return p1.getArea() < EPSILON;
+    	}
+    	Util.g = null;
+    	int numberOfShapes = shapes.size();
+    	int callStackIndent = Thread.currentThread().getStackTrace().length - 3;
+    	if (callStackIndent < 0)
+    	{
+    		callStackIndent = 0;    	
+    	}
+    	String prependStr = "";
+    	if (TRACE){
+    		for (int i = 0; i < callStackIndent; i++){
+    			prependStr = "    " + prependStr;
+    		}
+    	}
+    	if (TRACE) {
+    		Shape fittedShape = null;
+    		for (int i = 0; i < originalShapes.size(); i++){
+    			if (shapes.get(0) == originalShapes.get(i) && i > 0)
+    			{    			
+    				fittedShape = originalShapes.get(i - 1);
+    				break;
+    			}
+    		}
+    		if (fittedShape != null)
+    			System.out.println(prependStr + fittedShape.shape.toText());
+    		System.out.println(prependStr + p1.toText());
+    		//System.out.println(prependStr + Integer.toHexString(System.identityHashCode(p1)));
+    	}
+    	
+    	int[] traceItem = new int[6];
+    	//if (TRACE){
+    	//	traceData.add(traceItem);
+    	//}
+    	for(int k = 0; k < shapes.size(); k++){
+    		int i = 0;
+    		int j = 0;
+    		if (CanSkipShape(shapes, k)){
+    			continue;
+    		}
+    		ArrayList<Shape> shapes2 = clone(shapes);
+    		shapes2.remove(k);
+    		
+    		while(true){
+    			/*if (TRACE) {
+    				traceItem[0] = k;//getShapeIndex(shapes.get(k));
+    				traceItem[1] = shapes.size();
+    				traceItem[2] = i;    	    				
+    				traceItem[3] = p1.getCoordinates().length - 2;
+    				traceItem[4] = j;    			
+    				traceItem[5] = shapes.get(k).shape.getCoordinates().length - 2;
+    			
+    				System.out.println(prependStr + toStringTraceData(traceData));
+    			}*/
+    			
+    			Coordinate[] s1 = p1.getCoordinates();    			
+    	    	LinearRing p2 = shapes.get(k).shape;
+    	    	CoordinateSequence s2 = p2.getCoordinateSequence();
+    	    	Coordinate c1 = s1[i];
+    	    	Coordinate c2 = s2.getCoordinate(j);
+    	    	Coordinate c12 = s1[getNextCoordIdx(p1, i)];
+    	    	Coordinate c22 = s2.getCoordinate(getNextCoordIdx(s2, j));    	    	
 
-    public static Boolean stop = false;
-    public static LinearRing resultShape = null;
-    public static Boolean Fit(LinearRing p1, List<LinearRing> shapes){
-	if(shapes.size() == 0){
-	    Polygon poly1 = new Polygon(p1, null, geometryFactory);
-	    return p1.getArea() < EPSILON;
-	}
-	Util.g = null;
-	int numberOfShapes = shapes.size();
-	for(int k = 0; k < shapes.size(); k++){
-	    int i = 0;
-	    int j = 0;
-	    ArrayList<LinearRing> shapes2 = clone(shapes);
-	    shapes2.remove(k);
-	    
-	    while(true){
-		FitShapeReturn ret = FitShape(p1, shapes.get(k), i, j, numberOfShapes);
-		if(ret != null && stop){
-		    resultShape = ret.resultShape;
-		}
-		if(stop) {
-		    return true;
-		}
-		if(ret == null || ret.resultShape == null){
-		    break;
-		}
-		if(Fit(ret.resultShape, shapes2)){
-		    return true;
-		}
-		CoordIdxs idxs = AdvanceCoords(p1, shapes.get(k), i, j);
-		if(idxs == null){
-		    break;
-		}else{
-		    i = idxs.p1CoordIdx;
-		    j = idxs.p2CoordIdx;
-		}
-	    }
-	}
-	
-	return false;
-	
+    	    	MultiPolygon r = null;
+
+    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+    	    	if(r != null){
+    	    		if(Fit(r, shapes2, traceData))
+    				{
+    					//System.out.println();
+    					return true;
+    				}
+    	    	}
+    	    	c22 = s2.getCoordinate(getPrevCoordIdx(s2, j));
+    	    	//System.out.println("t2");
+    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+    	    	if(r != null){
+    	    		if(Fit(r, shapes2, traceData))
+    				{
+    					//System.out.println();
+    					return true;
+    				}
+    	    	}
+    			
+    	    	c12 = s1[getPrevCoordIdx(p1, i)];
+    	    	//System.out.println("t3");
+    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+    	    	if(r != null){
+    	    		if(Fit(r, shapes2, traceData))
+    				{
+    					//System.out.println();
+    					return true;
+    				}
+    	    	}
+    			
+    	    	c22 = s2.getCoordinate(getNextCoordIdx(p2.getCoordinateSequence(), j));
+    	    	//System.out.println("t4");
+    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+    	    	if(r != null){
+    	    		if(Fit(r, shapes2, traceData))
+    				{
+    					//System.out.println();
+    					return true;
+    				}
+    	    	}		
+    			
+    	    	Util.g = null;
+
+    			/*if(ret != null && ret.resultShape != null)
+    			{    				    		
+    				if(Fit(ret.resultShape, shapes2, traceData))
+    				{
+    					//System.out.println();
+    					return true;
+    				}
+    			}*/
+    			CoordIdxs idxs = AdvanceCoords(p1, shapes.get(k).shape, i, j);
+    			while (idxs != null && idxs.p1CoordIdx == i && CanSkipCoord(shapes.get(k), idxs.p2CoordIdx)){
+    				//System.out.println("Skipping coord");
+    				idxs = AdvanceCoords(p1, shapes.get(k).shape, i, idxs.p2CoordIdx);
+    			}
+    			if(idxs == null){
+    				if (shapes.size() == originalShapes.size() - 1 && !flipped){
+    					int pIdx = -1;
+    					for (int q = 0; q < shapes.size(); q++){
+    						if (shapes.get(q).type == TypeOfShape.PARALLELOGRAM){
+    							pIdx = q;
+    							break;
+    						}
+    					}
+    					if (pIdx != -1){
+    						Shape s = shapes.get(pIdx);
+    						AffineTransformation ref = new AffineTransformation();
+    						ref.reflect(0, 1);
+    						s.shape.apply(ref);
+    						s.shape.geometryChanged();
+    						i = 0;
+        					j = 0;
+        					flipped = true;
+        					continue;
+    					}
+    				}    				
+    				if (shapes.get(k).type == TypeOfShape.LARGE_TRIANGLE || shapes.get(k).type == TypeOfShape.MEDIUM_TRIANGLE){
+    					return false;
+    				}
+    				else
+    				{
+    					break;
+    				}    				
+    			}else{
+    				i = idxs.p1CoordIdx;
+    				j = idxs.p2CoordIdx;
+    			}
+    		}
+    	}
+    	if (TRACE){
+    	System.out.println();
+    	}
+    	return false;	
     }
     
     public static class CoordIdxs {
-	int p1CoordIdx;
-	int p2CoordIdx;
+    	int p1CoordIdx;
+    	int p2CoordIdx;
     }
     
 
-    public static CoordIdxs AdvanceCoords(LinearRing p1, LinearRing p2, int p1CoordIdx, int p2CoordIdx){
-	if(p1.getCoordinateSequence().size() - 2 == p1CoordIdx && p2.getCoordinateSequence().size() - 2 == p2CoordIdx){
-	    return null;
-	}
-	if(p2.getCoordinateSequence().size() - 2 == p2CoordIdx){
+    public static CoordIdxs AdvanceCoords(MultiPolygon p1, LinearRing p2, int p1CoordIdx, int p2CoordIdx){
+    	if(p1.getCoordinates().length - 2 == p1CoordIdx && p2.getCoordinateSequence().size() - 2 == p2CoordIdx){
+    		return null;
+    	}
+    	if(p2.getCoordinateSequence().size() - 2 == p2CoordIdx){
 	    
-	    CoordIdxs idxs = new CoordIdxs();
-	    idxs.p2CoordIdx = 0;
-	    idxs.p1CoordIdx = p1CoordIdx + 1;
-	    return idxs;
-	}
-	CoordIdxs idxs = new CoordIdxs();
-	idxs.p2CoordIdx = p2CoordIdx + 1;
-	idxs.p1CoordIdx = p1CoordIdx;
-	return idxs;
+    		CoordIdxs idxs = new CoordIdxs();
+    		idxs.p2CoordIdx = 0;
+    		idxs.p1CoordIdx = p1CoordIdx + 1;
+    		return idxs;
+    	}
+    	CoordIdxs idxs = new CoordIdxs();
+    	idxs.p2CoordIdx = p2CoordIdx + 1;
+    	idxs.p1CoordIdx = p1CoordIdx;
+    	return idxs;
     }
 
     public static class FitShapeReturn {
-	LinearRing resultShape;
-	int p1CoordIdx;
-	int p2CoordIdx;
+    	LinearRing resultShape;
+    	int p1CoordIdx;
+    	int p2CoordIdx;
     }
 
     public static Boolean debug = false;
-    public static Boolean matchSegsDebug = false;
+    public static Boolean matchSegsDebug = false;    
 
-    // fits p2 to p1. That is p2 is a subset of p1.
-    public static FitShapeReturn FitShape(LinearRing p1, LinearRing p2, int initialP1CoordIdx, int initialP2CoordIdx, int numberOfShapes) {
-	FitShapeReturn ret = new FitShapeReturn();	
-	CoordinateSequence s1 = p1.getCoordinateSequence();
-	boolean b = false;
-	for(int i = initialP1CoordIdx; i < s1.size() - 1; i++) {
-	    CoordinateSequence s2 = p2.getCoordinateSequence();
-	    for(int j = initialP2CoordIdx; j < s2.size() - 1; j++) {
-		Coordinate c1 = s1.getCoordinate(i);
-		Coordinate c2 = s2.getCoordinate(j);
-		Coordinate c12 = s1.getCoordinate(getNextCoordIdx(p1, i));
-		Coordinate c22 = s2.getCoordinate(getNextCoordIdx(p2, j));
-		if(debug){
-		    //matchSegsDebug = true;
-		    System.out.println("p1CoordIdx:" + i);
-		    System.out.println("p2CoordIdx:" + j);
-		    PrintCoord("p1Coord", c1);
-		    PrintCoord("p12Coord", c12);
-		    PrintCoord("p2Coord", c2);
-		    PrintCoord("p22Coord", c22);
-
-		}
-		//if(i != 2){
-		//    matchSegsDebug = false;
-		//}
-		LinearRing r = null;
-		//System.out.println("t1");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-		if(r != null){
-		    ret.resultShape = r;
-		    ret.p1CoordIdx = i;
-		    ret.p2CoordIdx = j;
-		    return ret;
-		}
-		c22 = s2.getCoordinate(getPrevCoordIdx(p2, j));
-		//System.out.println("t2");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-		if(r != null){
-		    ret.resultShape = r;
-		    ret.p1CoordIdx = i;
-		    ret.p2CoordIdx = j;
-		    return ret;
-		}
-		
-
-		c12 = s1.getCoordinate(getPrevCoordIdx(p1, i));
-		//System.out.println("t3");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-		if(r != null){
-		    ret.resultShape = r;
-		    ret.p1CoordIdx = i;
-		    ret.p2CoordIdx = j;
-		    return ret;
-		}
-		
-
-		c22 = s2.getCoordinate(getNextCoordIdx(p2, j));
-		//System.out.println("t4");
-		r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-		if(r != null){
-		    ret.resultShape = r;
-		    ret.p1CoordIdx = i;
-		    ret.p2CoordIdx = j;
-		    return ret;
-		}
-		
-		
-		//System.out.println("tranX:" + translateX);
-		//System.out.println("tranY:" + translateY);
-		
-	    }
-	    
-	}
-	Util.g = null;
-	return null;
+    public static AffineTransformation Rotate(double sinTheta, double cosTheta, double x, double y){
+    	AffineTransformation rot = new AffineTransformation();
+    	rot.translate(-x, -y);
+    	rot.rotate(sinTheta, cosTheta, 0, 0);
+    	rot.translate(x, y);
+    	return rot;
+    }
+    
+    public static MultiPolygon makeMulti(Polygon p){
+    	Polygon[] t = new Polygon[1];
+    	t[0] = p;
+    	return new MultiPolygon(t, geometryFactory);
     }
 
-    public static AffineTransformation Rotate(double sineTheta, double cosTheta, double x, double y){
-	AffineTransformation rot = new AffineTransformation();
-	rot.translate(-x, -y);
-	rot.rotate(sineTheta, cosTheta, 0, 0);
-	rot.translate(x, y);
-	return rot;
+    public static MultiPolygon copy(MultiPolygon p) throws Exception{
+    	assert p != null;
+    	Polygon[] polys = new Polygon[p.getNumGeometries()];
+    	for (int i = 0; i < p.getNumGeometries(); i++){
+    		if (!(p.getGeometryN(i) instanceof Polygon)){
+    			throw new Exception("can't copy multipolygon");
+    		}
+    		polys[i] = copy((Polygon)p.getGeometryN(i));
+    	}
+    	
+    	return new MultiPolygon(polys, geometryFactory);    	
     }
 
+    public static Polygon copy(Polygon p){
+    	assert p != null;    	
+    	LinearRing exterior = copy(convertToLinearRing(p.getExteriorRing()));
+    	
+    	LinearRing[] interiorRings = new LinearRing[p.getNumInteriorRing()];
+    	
+    	for (int i = 0; i < p.getNumInteriorRing(); i++){
+    		interiorRings[i] = copy(convertToLinearRing(p.getInteriorRingN(i)));
+    	}
+    	
+    	return new Polygon(exterior, interiorRings, geometryFactory);    	
+    }
+
+    
     public static LinearRing copy(LinearRing p){
-	Coordinate[] coords = p.getCoordinates();
-	Coordinate[] ccoords = new Coordinate[coords.length];
-	for(int i = 0; i < coords.length; i++){
-	    Coordinate coord = new Coordinate();
-	    coord.x = coords[i].x;
-	    coord.y = coords[i].y;
-	    ccoords[i] = coord;
-	}
-	return geometryFactory.createLinearRing(ccoords);
+    	assert p != null;
+    	Coordinate[] coords = p.getCoordinates();
+    	Coordinate[] ccoords = new Coordinate[coords.length];
+    	for(int i = 0; i < coords.length; i++){
+    		Coordinate coord = new Coordinate();
+    		coord.x = coords[i].x;
+    		coord.y = coords[i].y;
+    		ccoords[i] = coord;
+    	}
+    	return geometryFactory.createLinearRing(ccoords);
     }
 
     private static Geometry g = null;
 
-    public static LinearRing MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, LinearRing p1, LinearRing pp2, int numberOfShapes){
-	
-	//System.out.println("j:" + j);
-	
-	//System.out.println("j2:" + getNextCoordIdx(s2, j));
-	//PrintCoord("c2", c2);
-	//PrintCoord("c22", c22);
-	/*PrintCoord("c11", c11);
-	PrintCoord("c12", c12);
-	PrintCoord("c21", c21);
-	PrintCoord("c22", c22);
-	*/
-	LinearRing p2NoScale = copy(pp2);
-	LinearRing p2 = copy(pp2);
+    // Rotate the segment c21->c22 into the segment c11->c12.
+    public static MultiPolygon MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, MultiPolygon p1, LinearRing pp2, int numberOfShapes) throws Exception {
+	    p1 = copy(p1);
+    	LinearRing p2 = copy(pp2);
+    	
+    	if(debug && matchSegsDebug){
+    		PrintShape("p2", p2);
+    	}
+    	double translateX = c11.x - c21.x;
+    	double translateY = c11.y - c21.y;
+    	AffineTransformation translation = new AffineTransformation();
+    	if(matchSegsDebug){
+    		System.out.println("transX:" + translateX);
+    		System.out.println("transY:" + translateY);
+    	}
+    	translation.translate(translateX, translateY);
+    	p2.apply(translation);
+    	p2.geometryChanged();
+    	
+    	AffineTransformation rotation = new AffineTransformation();
+    	double cosTheta = getCosTheta(c11, c12, c21, c22);
+    	if((new Float(cosTheta)).toString().equals("NaN")){
+    		System.out.println("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\nERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\nERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+    		System.exit(0);
+    	}
+    	// Rotating back, so multiply by -1, since sin(-theta) = -1 * sin(theta).
+    	// Don't need for cosTheta, since cos(-theta) = cos(theta). 
+    	double sinTheta = getSinTheta(makeVector(c21, c22), makeVector(c11, c12));
+    	//if(CrossProd(v1, w1) < 0){
+    	//   sinTheta = -1 * sinTheta;
+    	//}
 
-	p2.apply(AffineTransformation.scaleInstance(1+EPSILON, 1+EPSILON));
-	if(debug && matchSegsDebug){
-	    PrintShape("p2", p2);
-	}
-	double translateX = c11.x - c21.x;
-	double translateY = c11.y - c21.y;
-	//System.out.println("translate:" + translateX + ", " + translateY);
-	CoordinateSequence s1 = p1.getCoordinateSequence();
-	CoordinateSequence s2 = p2.getCoordinateSequence();
-	CoordinateSequence s22 = p2NoScale.getCoordinateSequence();
-	AffineTransformation translation = new AffineTransformation();
-	if(matchSegsDebug){
-	    System.out.println("transX:" + translateX);
-	    System.out.println("transY:" + translateY);
-	}
-	translation.translate(translateX, translateY);
-	p2.apply(translation);
-	p2NoScale.apply(translation);
-	pp2.apply(translation);
-	p2.geometryChanged();
-	p2NoScale.geometryChanged();
-	pp2.geometryChanged();
-	if(matchSegsDebug){
-	    PrintCoord("c11", c11);
-	    PrintShape("trans p2", p2);
-	}
+    	if(matchSegsDebug){
+    		PrintCoord("rc11", c11);
+    	}
 
+    	rotation = Rotate(sinTheta, cosTheta, c11.x, c11.y);
+    	//	rotation.rotate(sinTheta, cosTheta, c11.x, c11.y);
+    	//PrintShape("p2", p2);		
+    	p2.apply(rotation);
+    	//p2NoScale.apply(rotation);
+    	p2.geometryChanged();
+    	//p2NoScale.geometryChanged();
+    	if(matchSegsDebug){
+    		PrintShape("poly2", p2);
+    	}
+    	MultiPolygon poly1 = null;
+    	if(Util.g == null){
+    		//poly1 = new MultiPolygon(p1, null, geometryFactory);
+    		Util.g = p1.buffer(2 * (TotalNumShapes - numberOfShapes + 1) * EPSILON);
+    		Util.g = SemiRobustGeoOp(Util.g, p1, UNION_OP); //Util.g.union(poly1);
+    	}
 
-	AffineTransformation rotation = new AffineTransformation();
-	double cosTheta = getCosTheta(c11, c12, c21, c22);
-	//System.out.println("cosTheta:" + cosTheta);
-	if((new Float(cosTheta)).toString().equals("NaN")){
-	    PrintCoord("c11", c11);
-	    PrintCoord("c12", c12);
-	    PrintCoord("c21", c21);
-	    PrintCoord("c22", c22);
-	    System.out.println("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\nERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\nERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
-	    System.exit(0);
-	}
-	double sineTheta = getSineTheta(makeVector(c21, c22), makeVector(c11, c12));
-	//System.out.println("sineTheta:" + sineTheta);
-	Coordinate v1 = MakeVector(c11, c12);
-	Coordinate w1 = MakeVector(c21, c22);
-	if(CrossProd(v1, w1) < 0){
-	    sineTheta = -1 * sineTheta;
-	}
-
-	if(matchSegsDebug){
-	    PrintCoord("rc11", c11);
-	}
-
-	rotation = Rotate(sineTheta, cosTheta, c11.x, c11.y);
-	//	rotation.rotate(sineTheta, cosTheta, c11.x, c11.y);
-	//PrintShape("p2", p2);		
-	p2.apply(rotation);
-	p2NoScale.apply(rotation);
-	pp2.apply(rotation);
-	p2.geometryChanged();
-	p2NoScale.geometryChanged();
-	pp2.geometryChanged();
-	if(matchSegsDebug){
-	    PrintShape("poly2", p2);
-	}
-	Polygon poly1 = new Polygon(p1, null, geometryFactory);
-	if(Util.g == null){
-	    //System.out.println("creating g");
-	    Util.g = poly1.buffer(2 * numberOfShapes * EPSILON);
-	    Util.g = Util.g.union(poly1);
-	}
-	Polygon poly2 = new Polygon(p2, null, geometryFactory);
-	Polygon poly22 = new Polygon(p2NoScale, null, geometryFactory);
-	verify(p1);
-	verify(p2);
-	try{
-	    if(g.covers(poly22)) {
-	    //if(poly1.covers(poly2)){
-		Geometry gg = poly1.difference(poly2);
-		LinearRing newP1 = convertToLinearRing(gg);
-		if(newP1 != null){
-		    g = null;
-		    //System.out.println("returning newP1");
-		    return newP1;
-		}else{
-		    //System.out.println("Returning null");
-		    //return null;
-		}
-	    }
-	}catch(TopologyException ex){
-	    System.out.println(ex.getMessage());
-	    PrintShape("p1", p1);
-	    PrintShape("p2", p2);
-	    stop = true;
-	    return p1;
-	    //System.exit(0);
-	}
-	//PrintShape("p2", p2);	
-	//System.out.println("sineTheta: " + -1 * sineTheta);
-	//System.out.println("cosTheta: " + cosTheta);
-	//PrintCoord("c11", c11);
-	rotation = new AffineTransformation();
-	rotation = Rotate(-1 * sineTheta, cosTheta, c11.x, c11.y);
-	pp2.apply(rotation);
-	pp2.geometryChanged();
-	
-	translation = new AffineTransformation();
-	//PrintShape("p2", p2);	
-	translation.translate(-1 * translateX, -1 * translateY);
-	pp2.apply(translation);
-	pp2.geometryChanged();
-
-	if(debug && matchSegsDebug){
-	    PrintShape("p2", p2);
-	}
-	//System.exit(0);
-	return null;
+    	Polygon poly22 = new Polygon(p2, null, geometryFactory);
+    	//verify(p1);
+    	verify(p2);
+    	MultiPolygon newP1 = ReturnNewShape(g, poly1, poly22, p1, p2);
+        if(newP1 != null){            
+        	g = null;
+        	pp2.apply(translation);
+        	pp2.geometryChanged();
+        	pp2.apply(rotation);
+        	pp2.geometryChanged();        	
+        	return newP1;
+        }
+        
+        if(debug && matchSegsDebug){
+        	PrintShape("p2", p2);
+        }
+        return null;
     }
+
+    private static final int DIF_OP = 0;
+    private static final int UNION_OP = 1;
+    private static final int COVER_PRED = 0;
+
+    public static MultiPolygon ReturnNewShape(Geometry g, MultiPolygon poly1, Polygon poly22, MultiPolygon p1, LinearRing p2) throws Exception {
+    	if(SemiRobustGeoPred(g, poly22, COVER_PRED)) { //g.covers(poly22)) {
+    		Polygon poly2 = new Polygon(p2, null, geometryFactory);
+    		if (poly1 == null) {
+    			poly1 = copy(p1);//new MultiPolygon(copy(p1), null, geometryFactory);
+    		}
+            	Geometry gg = SemiRobustGeoOp(poly1, poly2, DIF_OP);
+            	MultiPolygon newP1 = convertToMultiPolygon(gg);
+            	return newP1;
+    	} else {
+    		return null;
+    	}
+    }
+
+    public static Geometry SemiRobustGeoOp(Geometry g1, Geometry g2, int op) throws Exception {
+        double e1 = EPSILON/10;
+        double snapTolerance = GeometrySnapper.computeOverlaySnapTolerance(g1, g2);
+        while (snapTolerance < e1) {
+            try {
+                Geometry[] geos = GeometrySnapper.snap(g1, g2, snapTolerance);
+                switch (op) {                    
+                case DIF_OP:   // difference
+                    return geos[0].difference(geos[1]);
+                case UNION_OP: // union
+                    return geos[0].union(geos[1]);
+                default:
+                    throw new Exception("unhandled semirobustgeoop: " + op);
+                }
+            } catch (TopologyException e){
+                snapTolerance *= 2;
+            }
+        }
+        return null;
+    }
+
+    public static boolean SemiRobustGeoPred(Geometry g1, Geometry g2, int pred) throws Exception {
+        double e1 = EPSILON/10;
+        double snapTolerance = GeometrySnapper.computeOverlaySnapTolerance(g1, g2);
+        while (snapTolerance < e1) {
+            try {
+                Geometry[] geos = GeometrySnapper.snap(g1, g2, snapTolerance);
+                switch (pred) {                    
+                case COVER_PRED: // 
+                    return geos[0].covers(geos[1]);
+                default:
+                    throw new Exception("unhandled semirobustgeopred: " + pred);
+                }
+            } catch (TopologyException e){
+                snapTolerance *= 2;
+            }
+        }
+        return false;
+    }
+    
 
     public static void verify(LinearRing p){
 	
@@ -455,66 +661,159 @@ class Util {
 	}
     }
 
+    
+    public static MultiPolygon convertToMultiPolygon(Geometry g){
+    	if(g instanceof LinearRing){
+    	    return Util.makeMulti(new Polygon((LinearRing)g, null, geometryFactory));
+    	}
+    	if(g instanceof LineString){
+    	    if(((LineString)g).isRing()){    	    	
+    	    	return Util.makeMulti(new Polygon(geometryFactory.createLinearRing(((LineString)g).getCoordinates()), null, geometryFactory));
+    	    }
+    	    System.out.println("t0");
+    	    return null;
+    	}
+    	if (g instanceof GeometryCollection){
+    		if (((GeometryCollection)g).getNumGeometries() == 0){
+    			return Util.makeMulti(new Polygon(null, null, geometryFactory));
+    		}else if (g.getNumGeometries() == 1){
+    			GeometryCollectionIterator ci = new GeometryCollectionIterator(g);
+    			while (ci.hasNext())
+    			{
+    				Object next = ci.next();
+    				if (((Geometry)next) instanceof GeometryCollection)
+    				{
+    					continue;				
+    				}
+    				return convertToMultiPolygon((Geometry)ci.next());
+    			}
+    		}
+    	}
+    	if(! (g instanceof MultiPolygon) && !(g instanceof Polygon)){
+    	    if(debug){
+    		System.out.println(g.getClass().getName());
+    		System.out.println("t1");
+    	    }
+    	    return null;
+    	}    	
+    	if (g instanceof Polygon){
+    		return Util.makeMulti((Polygon)g);
+    	}
+    	return (MultiPolygon)g;    	
+    }
+    
+    public static Polygon convertToPolygon(Geometry g){
+    	if(g instanceof LinearRing){
+    	    return new Polygon((LinearRing)g, null, geometryFactory);
+    	}
+    	if(g instanceof LineString){
+    	    if(((LineString)g).isRing()){    	    	
+    	    	return new Polygon(geometryFactory.createLinearRing(((LineString)g).getCoordinates()), null, geometryFactory);
+    	    }
+    	    System.out.println("t0");
+    	    return null;
+    	}
+    	if (g instanceof GeometryCollection){
+    		if (((GeometryCollection)g).getNumGeometries() == 0){
+    			return new Polygon(null, null, geometryFactory);
+    		}else if (g.getNumGeometries() == 1){
+    			GeometryCollectionIterator ci = new GeometryCollectionIterator(g);
+    			while (ci.hasNext())
+    			{
+    				Object next = ci.next();
+    				if (((Geometry)next) instanceof GeometryCollection)
+    				{
+    					continue;				
+    				}
+    				return convertToPolygon((Geometry)ci.next());
+    			}
+    		}
+    	}
+    	if(! (g instanceof Polygon)){
+    	    if(debug){
+    		System.out.println(g.getClass().getName());
+    		System.out.println("t1");
+    	    }
+    	    return null;
+    	}    	
+    	return (Polygon)g;
+    }
+
+    
     public static LinearRing convertToLinearRing(Geometry g){
-	if(g instanceof LinearRing){
-	    return (LinearRing)g;
-	}
-	if(g instanceof LineString){
-	    if(((LineString)g).isRing()){
-		return geometryFactory.createLinearRing(((LineString)g).getCoordinates());
-	    }
-	    System.out.println("t0");
-	    return null;
-	}
-	if(! (g instanceof Polygon)){
-	    if(debug){
-		System.out.println(g.getClass().getName());
-		System.out.println("t1");
-	    }
-	    return null;
-	}
-	Polygon p = (Polygon)g;
-	if(p.getNumInteriorRing() != 0){
-	    //System.out.println("t2");
-	    return null;
-	}
-	if(!(p.getExteriorRing() instanceof LinearRing)){
-	    System.out.println("t3");
-	    return null;
-	}
-	if(debug){
-	    System.out.println("t4");
-	}
-	return (LinearRing)p.getExteriorRing();
+    	if(g instanceof LinearRing){
+    		return (LinearRing)g;
+    	}
+    	if(g instanceof LineString){
+    		if(((LineString)g).isRing()){
+    			return geometryFactory.createLinearRing(((LineString)g).getCoordinates());
+    		}
+    		System.out.println("t0");
+    		return null;
+    	}
+    	if (g instanceof GeometryCollection){
+    		if (((GeometryCollection)g).getNumGeometries() == 0){
+    			return new LinearRing(null, geometryFactory);
+    		}else if (g.getNumGeometries() == 1){
+    			GeometryCollectionIterator ci = new GeometryCollectionIterator(g);
+    			while (ci.hasNext())
+    			{
+    				Object next = ci.next();
+    				if (((Geometry)next) instanceof GeometryCollection)
+    				{
+    					continue;				
+    				}
+    				return convertToLinearRing((Geometry)ci.next());
+    			}
+    		}
+    	}
+    	if(! (g instanceof Polygon)){
+    		if(debug){
+    			System.out.println(g.getClass().getName());
+    			System.out.println("t1");
+    		}
+    		return null;
+    	}
+    	Polygon p = (Polygon)g;
+    	if(p.getNumInteriorRing() != 0){
+    		//System.out.println("t2");
+    		return null;
+    	}
+    	if(!(p.getExteriorRing() instanceof LinearRing)){
+    		System.out.println("t3");
+    		return null;
+    	}
+    	if(debug){
+    		System.out.println("t4");
+    	}
+    	return (LinearRing)p.getExteriorRing();
     }
 
     public static double getCosTheta(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22){
-	double vX = c12.x - c11.x;
-	double vY = c12.y - c11.y;
-	Coordinate v = new Coordinate(vX, vY);
-	//PrintCoord("v", v);
-	double magV = getMag(v);
-	//System.out.println("magV:" + magV);
-	double wX = c22.x - c21.x;
-	double wY = c22.y - c21.y;
+    	double vX = c12.x - c11.x;
+    	double vY = c12.y - c11.y;
+
+    	Coordinate v = new Coordinate(vX, vY);
+    	double magV = getMag(v);
+
+    	double wX = c22.x - c21.x;
+    	double wY = c22.y - c21.y;
 	
-	Coordinate w = new Coordinate(wX, wY);
-	//PrintCoord("w", w);
-	double magW = getMag(w);
-	//System.out.println("magW:" + magW);
-	return (vX * wX + vY * wY) / (magV * magW);
+    	Coordinate w = new Coordinate(wX, wY);
+    	double magW = getMag(w);
+
+    	return (vX * wX + vY * wY) / (magV * magW);
 
     }
 
-    public static double getSineTheta(Coordinate v, Coordinate w){	
+    public static double getSinTheta(Coordinate v, Coordinate w){	
 	return crossProd(v, w)/getMag(v) * 1/getMag(w);
 	//return Math.sqrt(1 - cosTheta * cosTheta);
     }
 
     //makes a new vector going from c1 to c2.
     public static Coordinate MakeVector(Coordinate c1, Coordinate c2){
-	Coordinate v = new Coordinate(c2.x - c1.x, c2.y - c1.y);
-	return v;
+	return new Coordinate(c2.x - c1.x, c2.y - c1.y);
     }
 
     // return c1 x c2 = det(c1, c2)
@@ -531,30 +830,116 @@ class Util {
 
 
     public static int getPrevCoordIdx(CoordinateSequence s, int coordIdx) {
-	if(coordIdx == 0){	    
-	    return s.size() - 1;
-	}
-	return coordIdx - 1;
+    	if(coordIdx == 0){	    
+    		return s.getCoordinate(s.size() - 1).equals2D(s.getCoordinate(coordIdx)) ? s.size() - 2 : s.size() - 1;
+    		//return s.size() - 2; // minus 2 to avoid the coordinate duplication
+    	}
+    	return coordIdx - 1;
     }
 
 
-    public static int getNextCoordIdx(LinearRing r, int coordIdx) {
-	if(coordIdx == r.getCoordinateSequence().size() - 1){
-	    return 1;
-	}
-	return coordIdx + 1;
+    public static int getNextCoordIdx(MultiPolygon r, int coordIdx) {
+    	if(coordIdx == r.getCoordinates().length - 1){
+    		return 1;
+    	}
+    	
+    	if (CoordEqual(r.getCoordinates()[coordIdx], r.getCoordinates()[coordIdx+1])) {
+    		return getNextCoordIdx(r, coordIdx + 1);    			
+    	}
+    	return coordIdx + 1;
     }
 
 
-    public static int getPrevCoordIdx(LinearRing r, int coordIdx) {
-	if(coordIdx == 0){	    
-	    return r.getCoordinateSequence().size() - 2;
-	}
-	return coordIdx - 1;
+    public static int getPrevCoordIdx(MultiPolygon r, int coordIdx) {
+    	if(coordIdx == 0){	    
+    		return r.getCoordinates().length - 2;
+    	}
+    	if (CoordEqual(r.getCoordinates()[coordIdx], r.getCoordinates()[coordIdx-1])) {
+    		return getPrevCoordIdx(r, coordIdx - 1);    			
+    	}
+    	
+    	return coordIdx - 1;
     }
 
-    public static double getMag(Coordinate c) {
-	return Math.sqrt(c.x * c.x + c.y * c.y);
+    public static double getMag(Coordinate c) {        
+    	return Math.sqrt(c.x * c.x + c.y * c.y);
+    }
+
+
+    public static ArrayList<LinearRing> makeTangramPieces(){
+    	ArrayList<LinearRing> pieces = new ArrayList<LinearRing>();
+    	pieces.add(makeLargeTriangle());
+    	pieces.add(makeLargeTriangle());
+    	pieces.add(makeMediumTriangle());	
+    	pieces.add(makeSmallTriangle());
+    	pieces.add(makeSmallTriangle());
+
+    	pieces.add(makeSSquare());
+    	pieces.add(makeParallelogram());
+    	return pieces;
+    }
+
+    public static double scaleFactor = 400;
+
+    public static LinearRing makeSmallTriangle(){
+    	double side = 1.0/Math.sqrt(2.0) * 1/2.0 * scaleFactor;
+    	Coordinate p1 = new Coordinate(0, 0);
+    	Coordinate p2 = new Coordinate(0, side);
+    	Coordinate p3 = new Coordinate(side, 0);
+	
+    	LinearRing tri = Util.makeTriangle(p1, p2, p3);
+    	return tri;
+    }
+
+    public static LinearRing makeMediumTriangle(){
+    	double side = 1.0/2.0 * scaleFactor;
+    	Coordinate p1 = new Coordinate(0, 0);
+    	Coordinate p2 = new Coordinate(0, side);
+    	Coordinate p3 = new Coordinate(side, 0);	
+    	LinearRing tri = Util.makeTriangle(p1, p2, p3);
+    	return tri;
+    }
+
+    public static LinearRing makeLargeTriangle(){
+    	double side = 1.0/Math.sqrt(2.0) * scaleFactor;
+    	Coordinate p1 = new Coordinate(0, 0);
+    	Coordinate p2 = new Coordinate(0, side);
+    	Coordinate p3 = new Coordinate(side, 0);
+	
+    	LinearRing tri = Util.makeTriangle(p1, p2, p3);
+    	return tri;
+    }
+
+    public static LinearRing makeSSquare(){
+    	double side  = 1.0/2.0 * 1.0/Math.sqrt(2.0) * scaleFactor;
+    	return Util.makeSquare(side);
+    }
+
+    public static LinearRing makeParallelogram(){
+    	Coordinate[] coords = new Coordinate[5];
+    	coords[0] = new Coordinate(0, 0);
+    	coords[1] = new Coordinate(0, 0.5 * scaleFactor);
+    	coords[2] = new Coordinate(0.25 * scaleFactor, 0.75 * scaleFactor);
+    	coords[3] = new Coordinate(0.25 * scaleFactor, 0.25 * scaleFactor);
+    	coords[4] = new Coordinate(0, 0);
+    	return geometryFactory.createLinearRing(coords);
+    }
+    
+    /*
+     * Make a parallelogram with long side of length 1 and short side of length sqrt(2)/2. 
+     */
+    public static LinearRing makeParallelogramL1(){
+    	Coordinate[] coords = new Coordinate[5];
+    	coords[0] = new Coordinate(0, 0);
+    	coords[1] = new Coordinate(0.5, 0.5);
+    	coords[2] = new Coordinate(1.5 , 0.5);
+    	coords[3] = new Coordinate(1 , 0 );
+    	coords[4] = new Coordinate(0, 0);
+    	return geometryFactory.createLinearRing(coords);
+    }
+    
+    public static boolean CoordEqual(Coordinate c1, Coordinate c2){
+    	return Math.abs(c1.x - c2.x) < EPSILON && Math.abs(c1.y - c2.y) < EPSILON; 
     }
 
 }

@@ -134,7 +134,7 @@ class Runner
 {
     public static GeometryFactory geometryFactory = null;
     public static GUIOutput gui = null;
-    public static void main(String args[]) throws java.lang.InterruptedException{
+    public static void main(String args[]) throws java.lang.InterruptedException, Exception {
 	
 	gui = new GUIOutput();
 	javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -149,132 +149,75 @@ class Runner
  	geometryFactory = new GeometryFactory();
 	Util.geometryFactory = geometryFactory;
  	//while (gui.getRenderer() == null){
- 	//    int x = 1;	
+ 	//    int x = 1;
  	renderGeometry();
      }
 
-    public static ArrayList<LinearRing> makeTangramPieces(){
-	ArrayList<LinearRing> pieces = new ArrayList<LinearRing>();
-	pieces.add(makeLargeTriangle());
-	pieces.add(makeLargeTriangle());
-	pieces.add(makeMediumTriangle());	
-	pieces.add(makeSmallTriangle());
-	pieces.add(makeSmallTriangle());
 
-	pieces.add(makeSquare());
-	pieces.add(makeParallelogram());
-	return pieces;
-    }
-
-    public static double scaleFactor = 400;
-
-    public static LinearRing makeSmallTriangle(){
-	double side = 1.0/Math.sqrt(2.0) * 1/2.0 * scaleFactor;
-	Coordinate p1 = new Coordinate(0, 0);
-	Coordinate p2 = new Coordinate(0, side);
-	Coordinate p3 = new Coordinate(side, 0);
+    public static void fit1() throws Exception {
+    	Renderer renderer = gui.getRenderer();
 	
-	LinearRing tri = Util.makeTriangle(p1, p2, p3);
-	return tri;
-    }
-
-    public static LinearRing makeMediumTriangle(){
-	double side = 1.0/2.0 * scaleFactor;
-	Coordinate p1 = new Coordinate(0, 0);
-	Coordinate p2 = new Coordinate(0, side);
-	Coordinate p3 = new Coordinate(side, 0);	
-	LinearRing tri = Util.makeTriangle(p1, p2, p3);
-	return tri;
-    }
-
-    public static LinearRing makeLargeTriangle(){
-	double side = 1.0/Math.sqrt(2.0) * scaleFactor;
-	Coordinate p1 = new Coordinate(0, 0);
-	Coordinate p2 = new Coordinate(0, side);
-	Coordinate p3 = new Coordinate(side, 0);
+    	LinearRing s1 = Util.makeS1(100);
+    	Coordinate p1 = new Coordinate(100, 0);
+    	Coordinate p2 = new Coordinate(0, 0);
+    	Coordinate p3 = new Coordinate(100, 100);
 	
-	LinearRing tri = Util.makeTriangle(p1, p2, p3);
-	return tri;
-    }
-
-    public static LinearRing makeSquare(){
-	double side  = 1.0/2.0 * 1.0/Math.sqrt(2.0) * scaleFactor;
-	return Util.makeSquare(side);
-    }
-
-    public static LinearRing makeParallelogram(){
-	Coordinate[] coords = new Coordinate[5];
-	coords[0] = new Coordinate(0, 0);
-	coords[1] = new Coordinate(0, 0.5 * scaleFactor);
-	coords[2] = new Coordinate(0.25 * scaleFactor, 0.75 * scaleFactor);
-	coords[3] = new Coordinate(0.25 * scaleFactor, 0.25 * scaleFactor);
-	coords[4] = new Coordinate(0, 0);
-	return geometryFactory.createLinearRing(coords);
-    }
-
-    public static void fit1(){
-	Renderer renderer = gui.getRenderer();
-	
-	LinearRing s1 = Util.makeS1(100);
-	Coordinate p1 = new Coordinate(100, 0);
-	Coordinate p2 = new Coordinate(0, 0);
-	Coordinate p3 = new Coordinate(100, 100);
-	
-	LinearRing tri1 = Util.makeTriangle(p1, p2, p3);
-	LinearRing tri2 = Util.makeTriangle(new Coordinate(200, 0), new Coordinate(250, 50), new Coordinate(200, 100));
-	LinearRing newS1 = null;
-	Util.PrintShape("s1", s1);
+    	LinearRing tri1 = Util.makeTriangle(p1, p2, p3);
+    	LinearRing tri2 = Util.makeTriangle(new Coordinate(200, 0), new Coordinate(250, 50), new Coordinate(200, 100));
+    	LinearRing newS1 = null;
+    	Util.PrintShape("s1", s1);
 
 	
-	Polygon poly1 = new Polygon(s1, null, geometryFactory);
-	Geometry poly1epsilon = new Polygon(s1, null, geometryFactory);
-	poly1epsilon = poly1epsilon.buffer(100 * Util.EPSILON).union(poly1epsilon);
+    	Polygon poly1 = new Polygon(s1, null, geometryFactory);
+    	Geometry poly1epsilon = new Polygon(s1, null, geometryFactory);
+    	poly1epsilon = poly1epsilon.buffer(100 * Util.EPSILON).union(poly1epsilon);
 
-	Polygon poly2 = new Polygon(tri1, null, geometryFactory);
-	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
+    	Polygon poly2 = new Polygon(tri1, null, geometryFactory);
+    	System.out.println("p1.covers(p2):" + poly1.covers(poly2));
 	
-	ArrayList<LinearRing> shapes = new ArrayList<LinearRing>();
-	shapes.add(tri1);
-	shapes.add(tri2);
-	System.out.println("Fit:" + Util.Fit(s1, shapes));
-	Util.PrintShape("tri1", tri1);	
-	Util.PrintShape("tri2", tri2);
+    	ArrayList<LinearRing> shapes = new ArrayList<LinearRing>();
+    	shapes.add(tri1);
+    	shapes.add(tri2);
+    	//System.out.println("Fit:" + Util.Fit(s1, shapes, null));
+    	Util.PrintShape("tri1", tri1);	
+    	Util.PrintShape("tri2", tri2);
 	
-	System.out.println("s1.covers(tri1):" + poly1.covers(new Polygon(tri1, null, geometryFactory)));
-	System.out.println("s1.covers(tri2):" + poly1.covers(new Polygon(tri2, null, geometryFactory)));
+    	System.out.println("s1.covers(tri1):" + poly1.covers(new Polygon(tri1, null, geometryFactory)));
+    	System.out.println("s1.covers(tri2):" + poly1.covers(new Polygon(tri2, null, geometryFactory)));
 
-	System.out.println("s1epsilon.covers(tri1):" + poly1epsilon.covers(new Polygon(tri1, null, geometryFactory)));
-	System.out.println("s1epsilon.covers(tri2):" + poly1epsilon.covers(new Polygon(tri2, null, geometryFactory)));
+    	System.out.println("s1epsilon.covers(tri1):" + poly1epsilon.covers(new Polygon(tri1, null, geometryFactory)));
+    	System.out.println("s1epsilon.covers(tri2):" + poly1epsilon.covers(new Polygon(tri2, null, geometryFactory)));
 	
-	//Util.PrintShape("newS1", newS1);
-	renderer.setLinearRing(s1, 0);
-	renderer.setLinearRingColor(new Color(0, 0, 0), 0);
-	renderer.setLinearRing(tri1, 1);
-	renderer.setLinearRingColor(new Color(255, 0, 0), 1);
-	renderer.setLinearRing(tri2, 2);
-	renderer.setLinearRingColor(new Color(0, 255, 0), 2);
+    	//Util.PrintShape("newS1", newS1);
+    	renderer.setLinearRing(s1, 0);
+    	renderer.setLinearRingColor(new Color(0, 0, 0), 0);
+    	renderer.setLinearRing(tri1, 1);
+    	renderer.setLinearRingColor(new Color(255, 0, 0), 1);
+    	renderer.setLinearRing(tri2, 2);
+    	renderer.setLinearRingColor(new Color(0, 255, 0), 2);
     
     }
     
-    public static void fitTangram(){
+    public static void fitTangram() throws Exception {
 	Renderer renderer = gui.getRenderer();
 	
-	LinearRing shape = Util.makeSquare(1.0 * scaleFactor);
+	LinearRing shape = Util.makeSquare(1.0 * Util.scaleFactor);
 	Polygon poly = new Polygon(shape, null, geometryFactory);
-	ArrayList<LinearRing> pieces = makeTangramPieces();
+	ArrayList<LinearRing> pieces = Util.makeTangramPieces();
 	
 	renderer.setLinearRing(shape, 0);
 	for(int i = 0; i < pieces.size(); i++){
 	    renderer.setLinearRing(pieces.get(i), i + 1);
 	}
-	System.out.println("Fit:" + Util.Fit(shape, pieces));
-	LinearRing mediumTri = makeMediumTriangle();
+	Util.TotalNumShapes = pieces.size();
+	//System.out.println("Fit:" + Util.Fit(shape, pieces, null));
+	LinearRing mediumTri = Util.makeMediumTriangle();
 	//renderer.setLinearRing(Util.resultShape, 0);
 	
 
     }
 
-    public static void renderGeometry() {	
+    public static void renderGeometry() throws Exception {	
 	//fit1();
 	fitTangram();
     }
