@@ -1,0 +1,75 @@
+The project 2dfit solves Tangram puzzles using the Java Topology Suite (JTS). The implementation algorithm is baed on what I outlined in the post "????". 
+
+The difficulty with The implementation difficulties are from using floating point arithmetic, which is not robust for geometric operations. 
+The JTS library attempts to minimize this by using a coordinate snapping technique. But for the operations used in solving Tangrams the provide snapping was not sufficient. 
+
+There's an option in JTS to specify the snapping tolerance (it has a fairly small default)
+I added small wrapper funtions two the two operations of checking if the Tangram covers the puzzle piece and 
+for doing the boolean difference of the Tangram with the puzzle piece. The wrapper functions apply successively 
+larger snapping tolerances up to a factor of epsilon, where epsilon = 1e-5. The below code shows the wrapper functions 
+(in the code, g1 is the Tangram and g2 is a puzzle piece). 
+<code>
+    public static Geometry SemiRobustGeoOp(Geometry g1, Geometry g2, int op) throws Exception {
+        double e1 = EPSILON/10;
+        double snapTolerance = GeometrySnapper.computeOverlaySnapTolerance(g1, g2);
+        while (snapTolerance < e1) {
+            try {
+                Geometry[] geos = GeometrySnapper.snap(g1, g2, snapTolerance);
+                switch (op) {                    
+                case DIF_OP:   // difference
+                    return geos[0].difference(geos[1]);
+                case UNION_OP: // union
+                    return geos[0].union(geos[1]);
+                default:
+                    throw new Exception("unhandled semirobustgeoop: " + op);
+                }
+            } catch (TopologyException e){
+                snapTolerance *= 2;
+            }
+        }
+        return null;
+    }
+
+    public static boolean SemiRobustGeoPred(Geometry g1, Geometry g2, int pred) throws Exception {
+        double e1 = EPSILON/10;
+        double snapTolerance = GeometrySnapper.computeOverlaySnapTolerance(g1, g2);
+        while (snapTolerance < e1) {
+            try {
+                Geometry[] geos = GeometrySnapper.snap(g1, g2, snapTolerance);
+                switch (pred) {                    
+                case COVER_PRED: // 
+                    return geos[0].covers(geos[1]);
+                default:
+                    throw new Exception("unhandled semirobustgeopred: " + pred);
+                }
+            } catch (TopologyException e){
+                snapTolerance *= 2;
+            }
+        }
+        return false;
+    }
+</code>
+
+
+Using the wrapper functions was the key to successfully making the implementation robust. 
+
+
+I used two techniques to reduce the number of permutations 
+
+1) Puzzle piece symmetry 
+
+2) Heuristics for which puzzle pieces to fit first.
+
+For the puzzle piece symmetry I used for example fact that the square is completely symmetric so only its first line
+segment needs tried for fitting the square. The triangle pieces are only partially symmetric so two of their three line segments
+need to tried. 
+
+I've illustrated square puzzle piece symmetry in the below figure:
+<figure>
+</figure>
+
+I used two heuristics for which pieces to try fitting, first try fitting larger pieces first and two skip a piece if another identical piece has 
+already failed to be fitted to the tangram (we have two identical small triangle and similarly two identical large triangle).
+
+
+With the above two optimizations it takes ~1min to solve a Tangram. Without the optimizations the algorithm did not complete for the Tangrams I tried.

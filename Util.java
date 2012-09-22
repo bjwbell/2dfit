@@ -252,11 +252,8 @@ class Util {
     		traceData = cloneTrace(traceData);
     	}
     	if(shapes.size() == 0){
-    		return true; //p1.getArea() < EPSILON;
-    		//MultiPolygon poly1 = new MultiPolygon(p1, null, geometryFactory);
-    		//return p1.getArea() < EPSILON;
+    		return true; 
     	}
-    	Util.g = null;
     	int numberOfShapes = shapes.size();
     	int callStackIndent = Thread.currentThread().getStackTrace().length - 3;
     	if (callStackIndent < 0)
@@ -281,13 +278,9 @@ class Util {
     		if (fittedShape != null)
     			System.out.println(prependStr + fittedShape.shape.toText());
     		System.out.println(prependStr + p1.toText());
-    		//System.out.println(prependStr + Integer.toHexString(System.identityHashCode(p1)));
     	}
     	
     	int[] traceItem = new int[6];
-    	//if (TRACE){
-    	//	traceData.add(traceItem);
-    	//}
     	for(int k = 0; k < shapes.size(); k++){
     		int i = 0;
     		int j = 0;
@@ -298,119 +291,83 @@ class Util {
     		shapes2.remove(k);
     		
     		while(true){
-    			/*if (TRACE) {
-    				traceItem[0] = k;//getShapeIndex(shapes.get(k));
-    				traceItem[1] = shapes.size();
-    				traceItem[2] = i;    	    				
-    				traceItem[3] = p1.getCoordinates().length - 2;
-    				traceItem[4] = j;    			
-    				traceItem[5] = shapes.get(k).shape.getCoordinates().length - 2;
-    			
-    				System.out.println(prependStr + toStringTraceData(traceData));
-    			}*/
-    			
     			Coordinate[] s1 = p1.getCoordinates();    			
-    	    	LinearRing p2 = shapes.get(k).shape;
-    	    	CoordinateSequence s2 = p2.getCoordinateSequence();
-    	    	Coordinate c1 = s1[i];
-    	    	Coordinate c2 = s2.getCoordinate(j);
-    	    	Coordinate c12 = s1[getNextCoordIdx(p1, i)];
-    	    	Coordinate c22 = s2.getCoordinate(getNextCoordIdx(s2, j));    	    	
+			LinearRing p2 = shapes.get(k).shape;
+			CoordinateSequence s2 = p2.getCoordinateSequence();
+			Coordinate c1 = s1[i];
+			Coordinate c2 = s2.getCoordinate(j);
+			Coordinate c12 = s1[getNextCoordIdx(p1, i)];
+			Coordinate c22 = s2.getCoordinate(getNextCoordIdx(s2, j));    	    	
+			MultiPolygon r = null;
 
-    	    	MultiPolygon r = null;
-
-    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-    	    	if(r != null){
-    	    		if(Fit(r, shapes2, traceData))
-    				{
-    					//System.out.println();
-    					return true;
-    				}
-    	    	}
-    	    	c22 = s2.getCoordinate(getPrevCoordIdx(s2, j));
-    	    	//System.out.println("t2");
-    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-    	    	if(r != null){
-    	    		if(Fit(r, shapes2, traceData))
-    				{
-    					//System.out.println();
-    					return true;
-    				}
-    	    	}
+			r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+			if(r != null){
+			    if(Fit(r, shapes2, traceData)) {
+				return true;
+			    }
+			}
+			c22 = s2.getCoordinate(getPrevCoordIdx(s2, j));
+			r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+			if(r != null){
+			    if(Fit(r, shapes2, traceData)){
+				return true;
+			    }
+			}
     			
-    	    	c12 = s1[getPrevCoordIdx(p1, i)];
-    	    	//System.out.println("t3");
-    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-    	    	if(r != null){
-    	    		if(Fit(r, shapes2, traceData))
-    				{
-    					//System.out.println();
-    					return true;
-    				}
-    	    	}
+			c12 = s1[getPrevCoordIdx(p1, i)];
+			r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+			if(r != null){
+			    if(Fit(r, shapes2, traceData)){
+				return true;
+			    }
+			}
     			
-    	    	c22 = s2.getCoordinate(getNextCoordIdx(p2.getCoordinateSequence(), j));
-    	    	//System.out.println("t4");
-    	    	r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
-    	    	if(r != null){
-    	    		if(Fit(r, shapes2, traceData))
-    				{
-    					//System.out.println();
-    					return true;
-    				}
-    	    	}		
+			c22 = s2.getCoordinate(getNextCoordIdx(p2.getCoordinateSequence(), j));
+			r = MatchSegs(c1, c12, c2, c22, p1, p2, numberOfShapes);
+			if(r != null){
+			    if(Fit(r, shapes2, traceData)){
+				return true;
+			    }
+			}		
     			
-    	    	Util.g = null;
-
-    			/*if(ret != null && ret.resultShape != null)
-    			{    				    		
-    				if(Fit(ret.resultShape, shapes2, traceData))
-    				{
-    					//System.out.println();
-    					return true;
-    				}
-    			}*/
-    			CoordIdxs idxs = AdvanceCoords(p1, shapes.get(k).shape, i, j);
-    			while (idxs != null && idxs.p1CoordIdx == i && CanSkipCoord(shapes.get(k), idxs.p2CoordIdx)){
-    				//System.out.println("Skipping coord");
-    				idxs = AdvanceCoords(p1, shapes.get(k).shape, i, idxs.p2CoordIdx);
-    			}
-    			if(idxs == null){
-    				if (shapes.size() == originalShapes.size() - 1 && !flipped){
-    					int pIdx = -1;
-    					for (int q = 0; q < shapes.size(); q++){
-    						if (shapes.get(q).type == TypeOfShape.PARALLELOGRAM){
-    							pIdx = q;
-    							break;
-    						}
-    					}
-    					if (pIdx != -1){
-    						Shape s = shapes.get(pIdx);
-    						AffineTransformation ref = new AffineTransformation();
-    						ref.reflect(0, 1);
-    						s.shape.apply(ref);
-    						s.shape.geometryChanged();
-    						i = 0;
-        					j = 0;
-        					flipped = true;
-        					continue;
-    					}
-    				}    				
-    				if (shapes.get(k).type == TypeOfShape.LARGE_TRIANGLE || shapes.get(k).type == TypeOfShape.MEDIUM_TRIANGLE){
-    					return false;
-    				}
-    				else
-    				{
-    					break;
-    				}    				
-    			}else{
-    				i = idxs.p1CoordIdx;
-    				j = idxs.p2CoordIdx;
-    			}
+			CoordIdxs idxs = AdvanceCoords(p1, shapes.get(k).shape, i, j);
+			while (idxs != null && idxs.p1CoordIdx == i && CanSkipCoord(shapes.get(k), idxs.p2CoordIdx)){
+			    idxs = AdvanceCoords(p1, shapes.get(k).shape, i, idxs.p2CoordIdx);
+			}
+			if(idxs == null){
+			    if (shapes.size() == originalShapes.size() - 1 && !flipped){
+				int pIdx = -1;
+				for (int q = 0; q < shapes.size(); q++){
+				    if (shapes.get(q).type == TypeOfShape.PARALLELOGRAM){
+					pIdx = q;
+					break;
+				    }
+				}
+				if (pIdx != -1){
+				    Shape s = shapes.get(pIdx);
+				    AffineTransformation ref = new AffineTransformation();
+				    ref.reflect(0, 1);
+				    s.shape.apply(ref);
+				    s.shape.geometryChanged();
+				    i = 0;
+				    j = 0;
+				    flipped = true;
+				    continue;
+				}
+			    }    				
+			    if (shapes.get(k).type == TypeOfShape.LARGE_TRIANGLE || shapes.get(k).type == TypeOfShape.MEDIUM_TRIANGLE){
+				return false;
+			    } else {
+				break;
+			    }    				
+			}else{
+			    i = idxs.p1CoordIdx;
+			    j = idxs.p2CoordIdx;
+			}
     		}
     	}
     	if (TRACE){
-    	System.out.println();
+	    System.out.println();
     	}
     	return false;	
     }
@@ -501,23 +458,14 @@ class Util {
     	return geometryFactory.createLinearRing(ccoords);
     }
 
-    private static Geometry g = null;
-
     // Rotate the segment c21->c22 into the segment c11->c12.
     public static MultiPolygon MatchSegs(Coordinate c11, Coordinate c12, Coordinate c21, Coordinate c22, MultiPolygon p1, LinearRing pp2, int numberOfShapes) throws Exception {
 	    p1 = copy(p1);
     	LinearRing p2 = copy(pp2);
     	
-    	if(debug && matchSegsDebug){
-    		PrintShape("p2", p2);
-    	}
     	double translateX = c11.x - c21.x;
     	double translateY = c11.y - c21.y;
     	AffineTransformation translation = new AffineTransformation();
-    	if(matchSegsDebug){
-    		System.out.println("transX:" + translateX);
-    		System.out.println("transY:" + translateY);
-    	}
     	translation.translate(translateX, translateY);
     	p2.apply(translation);
     	p2.geometryChanged();
@@ -525,7 +473,7 @@ class Util {
     	AffineTransformation rotation = new AffineTransformation();
     	double cosTheta = getCosTheta(c11, c12, c21, c22);
     	if((new Float(cosTheta)).toString().equals("NaN")){
-    		System.out.println("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\nERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\nERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+    		System.out.println("ERROR: NAN");
     		System.exit(0);
     	}
     	// Rotating back, so multiply by -1, since sin(-theta) = -1 * sin(theta).
@@ -535,43 +483,18 @@ class Util {
     	//   sinTheta = -1 * sinTheta;
     	//}
 
-    	if(matchSegsDebug){
-    		PrintCoord("rc11", c11);
-    	}
-
     	rotation = Rotate(sinTheta, cosTheta, c11.x, c11.y);
-    	//	rotation.rotate(sinTheta, cosTheta, c11.x, c11.y);
-    	//PrintShape("p2", p2);		
     	p2.apply(rotation);
-    	//p2NoScale.apply(rotation);
     	p2.geometryChanged();
-    	//p2NoScale.geometryChanged();
-    	if(matchSegsDebug){
-    		PrintShape("poly2", p2);
-    	}
-    	MultiPolygon poly1 = null;
-    	if(Util.g == null){
-    		//poly1 = new MultiPolygon(p1, null, geometryFactory);
-    		Util.g = p1.buffer(2 * (TotalNumShapes - numberOfShapes + 1) * EPSILON);
-    		Util.g = SemiRobustGeoOp(Util.g, p1, UNION_OP); //Util.g.union(poly1);
-    	}
-
     	Polygon poly22 = new Polygon(p2, null, geometryFactory);
-    	//verify(p1);
-    	verify(p2);
-    	MultiPolygon newP1 = ReturnNewShape(g, poly1, poly22, p1, p2);
+    	MultiPolygon newP1 = ReturnNewShape(poly22, p1, p2);
         if(newP1 != null){            
-        	g = null;
         	pp2.apply(translation);
         	pp2.geometryChanged();
         	pp2.apply(rotation);
         	pp2.geometryChanged();        	
         	return newP1;
-        }
-        
-        if(debug && matchSegsDebug){
-        	PrintShape("p2", p2);
-        }
+        }        
         return null;
     }
 
@@ -579,12 +502,10 @@ class Util {
     private static final int UNION_OP = 1;
     private static final int COVER_PRED = 0;
 
-    public static MultiPolygon ReturnNewShape(Geometry g, MultiPolygon poly1, Polygon poly22, MultiPolygon p1, LinearRing p2) throws Exception {
-    	if(SemiRobustGeoPred(g, poly22, COVER_PRED)) { //g.covers(poly22)) {
+    public static MultiPolygon ReturnNewShape(Polygon poly22, MultiPolygon p1, LinearRing p2) throws Exception {
+	MultiPolygon poly1 = copy(p1);
+    	if(SemiRobustGeoPred(poly1, poly22, COVER_PRED)) { //g.covers(poly22)) {
     		Polygon poly2 = new Polygon(p2, null, geometryFactory);
-    		if (poly1 == null) {
-    			poly1 = copy(p1);//new MultiPolygon(copy(p1), null, geometryFactory);
-    		}
             	Geometry gg = SemiRobustGeoOp(poly1, poly2, DIF_OP);
             	MultiPolygon newP1 = convertToMultiPolygon(gg);
             	return newP1;
