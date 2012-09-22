@@ -1,0 +1,19 @@
+This project uses the Java Topology Suite (JTS) to solve tangram puzzles.
+
+To compile the project you need JDK 7. 
+
+Linux Instructions:
+	Execute "make" to compile the test program. There's an unmaintained GUI that's compiled by running "make Runner". 
+	Execute "run_test.sh" to run the tangram solving tests.
+	To run the unmaintained GUI execute 'java -classpath ".:jts-1.12.jar" Runner'
+
+Windows Instructions:
+	Execute "make.bat" to compile the test program and the unmaintained GUI.
+	Execute "run_test.bat" to run the tangram solving tests. To run the unmaintained GUI execute "run_runner.bat".
+
+
+
+
+Notes:
+	There's a set of elisp functions in show.el that takes the "Well-known Text representation" of LinearRing's and MultiPoly's and
+	changes the format to be suitable for display using gnuplot.

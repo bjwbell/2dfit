@@ -1,1 +1,1 @@
-java -classpath .;jts-1.9.jar Runner
+java -classpath .;jts-1.12.jar Runner
