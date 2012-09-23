@@ -12,8 +12,6 @@ Windows Instructions:
 	Execute "run_test.bat" to run the tangram solving tests. To run the unmaintained GUI execute "run_runner.bat".
 
 
-
-
 Notes:
 	There's a set of elisp functions in show.el that takes the "Well-known Text representation" of LinearRing's and MultiPoly's and
 	changes the format to be suitable for display using gnuplot.
